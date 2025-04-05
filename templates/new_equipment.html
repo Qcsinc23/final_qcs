@@ -1,0 +1,131 @@
+{% extends 'layout.html' %}
+
+{% block title %}Add Equipment - QCS Event Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-dolly me-2"></i>Add Equipment</h1>
+    <a href="{{ url_for('equipment') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Back to Equipment
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Add New Equipment</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" id="newEquipmentForm">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Equipment Name*</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                        <div class="form-text">Enter a descriptive name for this equipment</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="quantity" class="form-label">Quantity*</label>
+                        <input type="number" class="form-control" id="quantity" name="quantity" min="1" value="1" required>
+                        <div class="form-text">How many units of this equipment do you have?</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="2"></textarea>
+                        <div class="form-text">Brief description of the equipment (optional)</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                        <div class="form-text">Additional notes, maintenance requirements, etc. (optional)</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('equipment') }}" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Add Equipment
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Equipment Tips</h5>
+            </div>
+            <div class="card-body">
+                <h6 class="fw-bold">Best Practices</h6>
+                <ul class="mb-3">
+                    <li>Use clear, consistent naming conventions</li>
+                    <li>Be accurate with quantities to avoid double-booking</li>
+                    <li>Include specifications in the description</li>
+                    <li>Document any special handling requirements in notes</li>
+                </ul>
+                
+                <h6 class="fw-bold">Equipment Tracking</h6>
+                <p class="mb-0">Equipment items added here will be available for assignment to events. The system will track availability and prevent overbooking.</p>
+            </div>
+        </div>
+        
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Examples</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3 pb-3 border-bottom">
+                    <h6 class="fw-bold">Name: Portable Speaker System</h6>
+                    <p class="mb-1"><strong>Quantity:</strong> 4</p>
+                    <p class="mb-1"><strong>Description:</strong> 1000W powered speaker with stand</p>
+                    <p class="mb-0"><strong>Notes:</strong> Requires 20 minutes setup time. Includes cables.</p>
+                </div>
+                
+                <div>
+                    <h6 class="fw-bold">Name: 10' x 10' Tent</h6>
+                    <p class="mb-1"><strong>Quantity:</strong> 8</p>
+                    <p class="mb-1"><strong>Description:</strong> White pop-up tents with sidewalls</p>
+                    <p class="mb-0"><strong>Notes:</strong> Requires 2 people to set up. Inspect before/after each event.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Form validation
+        const form = document.getElementById('newEquipmentForm');
+        form.addEventListener('submit', function(e) {
+            let valid = true;
+            
+            // Validate name
+            const name = document.getElementById('name');
+            if (!name.value.trim()) {
+                valid = false;
+                name.classList.add('is-invalid');
+            } else {
+                name.classList.remove('is-invalid');
+            }
+            
+            // Validate quantity
+            const quantity = document.getElementById('quantity');
+            if (!quantity.value || parseInt(quantity.value) < 1) {
+                valid = false;
+                quantity.classList.add('is-invalid');
+            } else {
+                quantity.classList.remove('is-invalid');
+            }
+            
+            if (!valid) {
+                e.preventDefault();
+            }
+        });
+    });
+</script>
+{% endblock %}

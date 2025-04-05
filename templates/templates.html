@@ -1,0 +1,198 @@
+{% extends 'layout.html' %}
+
+{% block title %}Event Templates - QCS Event Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-copy me-2"></i>Event Templates</h1>
+    <div>
+        {% if 'admin' in session.role or 'staff' in session.role %}
+        <a href="{{ url_for('new_template') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>New Template
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Total Templates
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ templates|length }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-copy fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Categories Used
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {% set categories_used = [] %}
+                            {% for template in templates %}
+                                {% if template.category_id and template.category_id not in categories_used %}
+                                    {% set categories_used = categories_used + [template.category_id] %}
+                                {% endif %}
+                            {% endfor %}
+                            {{ categories_used|length }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-tags fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Equipment Items Used
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {% set equipment_used = [] %}
+                            {% for template in templates %}
+                                {% if template.equipment %}
+                                    {% for equipment in template.equipment %}
+                                        {% if equipment.id not in equipment_used %}
+                                            {% set equipment_used = equipment_used + [equipment.id] %}
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            {% endfor %}
+                            {{ equipment_used|length }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-dolly fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    {% if templates %}
+        {% for template in templates %}
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header template-header" data-color="{{ template.color }}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 text-white">{{ template.name }}</h5>
+                        {% if template.category_name %}
+                        <span class="badge bg-white text-dark">{{ template.category_name }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        {% if template.description %}
+                            {{ template.description }}
+                        {% else %}
+                            <span class="text-muted">No description provided</span>
+                        {% endif %}
+                    </p>
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div>
+                            <i class="fas fa-clock text-secondary me-1"></i>
+                            <small>{{ template.default_duration }} hours</small>
+                        </div>
+                        <div>
+                            <i class="fas fa-dolly text-secondary me-1"></i>
+                            <small>{{ template.equipment_count|default(0) }} items</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-light">
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('new_event') }}?template_id={{ template.id }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-calendar-plus me-1"></i>Use Template
+                        </a>
+                        {% if 'admin' in session.role or 'staff' in session.role %}
+                        <div class="btn-group">
+                            <a href="{{ url_for('edit_template', template_id=template.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                    data-bs-toggle="modal" data-bs-target="#deleteModal{{ template.id }}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Delete Modal -->
+            <div class="modal fade" id="deleteModal{{ template.id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Confirm Delete</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Are you sure you want to delete the template <strong>{{ template.name }}</strong>?</p>
+                            <p class="mb-0 text-danger">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                This action cannot be undone.
+                            </p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <form action="{{ url_for('delete_template', template_id=template.id) }}" method="post">
+                                <button type="submit" class="btn btn-danger">Delete Template</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>No templates found. 
+                {% if 'admin' in session.role or 'staff' in session.role %}
+                <a href="{{ url_for('new_template') }}">Create your first event template</a>.
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Apply template header colors
+        const templateHeaders = document.querySelectorAll('.template-header');
+        templateHeaders.forEach(header => {
+            const color = header.getAttribute('data-color');
+            if (color) {
+                header.style.backgroundColor = color;
+            }
+        });
+    });
+</script>
+{% endblock %}

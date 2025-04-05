@@ -1,0 +1,188 @@
+{% extends 'layout.html' %}
+
+{% block title %}Invoice #{{ invoice.id }} - QCS Event Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-file-invoice-dollar me-2"></i>Invoice #{{ invoice.id }}</h1>
+    <div>
+        <a href="{{ url_for('calendar.generate_invoice_pdf', invoice_id=invoice.id) }}" class="btn btn-secondary me-2">
+            <i class="fas fa-file-pdf me-1"></i>Download PDF
+        </a>
+        <a href="{{ url_for('calendar.invoices') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Invoices
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Invoice Details -->
+        <div class="card shadow mb-4">
+            <div class="card-header {% if invoice.client_color %}client-header{% endif %}" 
+                 {% if invoice.client_color %}data-color="{{ invoice.client_color }}"{% endif %}>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-white">Invoice Details</h5>
+                    <span class="badge bg-light text-dark">
+                        {{ invoice.status|capitalize }}
+                    </span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="invoice-header mb-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4>QCS Event Management</h4>
+                            <p>123 Event Way<br>
+                            Jersey City, NJ 07302<br>
+                            (201) 555-1234<br>
+                            info@qcsevents.com</p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <h4>
+                                <span class="badge client-badge" data-color="{{ invoice.client_color }}">
+                                    {{ invoice.client_name }}
+                                </span>
+                            </h4>
+                            <p>Issue Date: {{ invoice.issue_date }}<br>
+                            Invoice #: {{ invoice.id }}<br>
+                            Status: {{ invoice.status|capitalize }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <h5 class="border-bottom pb-2 mb-3">Event Information</h5>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <p><strong>Event:</strong> 
+                            <a href="{{ url_for('calendar.view_event', event_id=invoice.event_id) }}">
+                                {{ invoice.event_title }}
+                            </a>
+                        </p>
+                        <p><strong>Date:</strong> {{ invoice.event_date }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Location:</strong> {{ invoice.location or 'Not specified' }}</p>
+                        <p><strong>Times:</strong> 
+                            {% if invoice.drop_off_time and invoice.pick_up_time %}
+                            {{ invoice.drop_off_time }} to {{ invoice.pick_up_time }}
+                            {% else %}
+                            Not specified
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                
+                <h5 class="border-bottom pb-2 mb-3">Services & Charges</h5>
+                <div class="table-responsive mb-4">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Description</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Event Logistics Services</td>
+                                <td class="text-end">${{ "%.2f"|format(invoice.amount) }}</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th>Total</th>
+                                <th class="text-end">${{ "%.2f"|format(invoice.amount) }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                
+                <div class="invoice-notes mb-4">
+                    <h5 class="border-bottom pb-2 mb-3">Notes</h5>
+                    <p>Thank you for your business! Please make payment within 30 days.</p>
+                    <p><small>Payment methods: Check, ACH transfer, or credit card (3% processing fee applies).</small></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Payment Status -->
+        <div class="card shadow mb-4">
+            <div class="card-header {% if invoice.status == 'paid' %}bg-success{% else %}bg-warning{% endif %} text-white">
+                <h5 class="mb-0">
+                    <i class="{% if invoice.status == 'paid' %}fas fa-check-circle{% else %}fas fa-clock{% endif %} me-2"></i>
+                    Payment Status
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if invoice.status == 'paid' %}
+                <div class="alert alert-success mb-3">
+                    <i class="fas fa-check-circle me-2"></i>
+                    This invoice has been marked as paid.
+                </div>
+                {% else %}
+                <div class="alert alert-warning mb-3">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    This invoice is currently unpaid.
+                </div>
+                
+                <form action="{{ url_for('calendar.mark_invoice_paid', invoice_id=invoice.id) }}" method="post">
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check-circle me-1"></i>Mark as Paid
+                        </button>
+                    </div>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Related Event -->
+        <div class="card shadow">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-check me-2"></i>Related Event
+                </h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Event:</strong> {{ invoice.event_title }}</p>
+                <p><strong>Date:</strong> {{ invoice.event_date }}</p>
+                <p><strong>Status:</strong> 
+                    {% if invoice.event_status == 'completed' %}
+                    <span class="badge bg-success">Completed</span>
+                    {% elif invoice.event_status == 'cancelled' %}
+                    <span class="badge bg-danger">Cancelled</span>
+                    {% else %}
+                    <span class="badge bg-primary">{{ invoice.event_status|capitalize }}</span>
+                    {% endif %}
+                </p>
+                
+                <div class="d-grid">
+                    <a href="{{ url_for('calendar.view_event', event_id=invoice.event_id) }}" class="btn btn-outline-primary">
+                        <i class="fas fa-eye me-1"></i>View Event Details
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Apply client colors
+        const clientHeader = document.querySelector('.client-header');
+        if (clientHeader) {
+            const color = clientHeader.getAttribute('data-color');
+            if (color) {
+                clientHeader.style.backgroundColor = color;
+            }
+        }
+        
+        // Apply client badge colors
+        applyClientColors();
+    });
+</script>
+{% endblock %}

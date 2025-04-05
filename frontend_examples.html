@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Frontend Examples - QCS Event Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #3498db;
+            margin-top: 30px;
+        }
+        h3 {
+            color: #2c3e50;
+            margin-top: 25px;
+        }
+        .example {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        pre {
+            background: #f1f1f1;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        code {
+            font-family: monospace;
+        }
+        .comment {
+            color: #2ecc71;
+            font-style: italic;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Frontend Considerations for QCS Event Management System</h1>
+    <p>This document provides examples of how to adapt your HTML forms and display data for the new database schema structure focusing on elements, kits, and events.</p>
+
+    <h2>1. Element Types List and Management</h2>
+    <div class="example">
+        <h3>Element Types List</h3>
+        <pre><code>
+&lt;!-- Element Types List --&gt;
+&lt;div class="card shadow mb-4"&gt;
+    &lt;div class="card-header bg-primary text-white d-flex justify-content-between align-items-center"&gt;
+        &lt;h5 class="mb-0"&gt;&lt;i class="fas fa-tags me-2"&gt;&lt;/i&gt;Element Types&lt;/h5&gt;
+        &lt;a href="{{ url_for('new_element_type') }}" class="btn btn-light btn-sm"&gt;
+            &lt;i class="fas fa-plus me-1"&gt;&lt;/i&gt;Add Type
+        &lt;/a&gt;
+    &lt;/div&gt;
+    &lt;div class="card-body"&gt;
+        &lt;div class="table-responsive"&gt;
+            &lt;table class="table table-hover"&gt;
+                &lt;thead&gt;
+                    &lt;tr&gt;
+                        &lt;th&gt;ID&lt;/th&gt;
+                        &lt;th&gt;Type Name&lt;/th&gt;
+                        &lt;th&gt;Elements Count&lt;/th&gt;
+                        &lt;th&gt;Actions&lt;/th&gt;
+                    &lt;/tr&gt;
+                &lt;/thead&gt;
+                &lt;tbody&gt;
+                    {% for type in types %}
+                    &lt;tr&gt;
+                        &lt;td&gt;{{ type.type_id }}&lt;/td&gt;
+                        &lt;td&gt;{{ type.type_name }}&lt;/td&gt;
+                        &lt;td&gt;{{ type.element_count }}&lt;/td&gt;
+                        &lt;td&gt;
+                            &lt;a href="{{ url_for('edit_element_type', type_id=type.type_id) }}" class="btn btn-sm btn-outline-primary"&gt;
+                                &lt;i class="fas fa-edit"&gt;&lt;/i&gt;
+                            &lt;/a&gt;
+                            &lt;button type="button" class="btn btn-sm btn-outline-danger" 
+                                   data-bs-toggle="modal" data-bs-target="#deleteTypeModal{{ type.type_id }}"&gt;
+                                &lt;i class="fas fa-trash"&gt;&lt;/i&gt;
+                            &lt;/button&gt;
+                        &lt;/td&gt;
+                    &lt;/tr&gt;
+                    {% endfor %}
+                &lt;/tbody&gt;
+            &lt;/table&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+        </code></pre>
+        <div class="comment">The above example displays a list of element types with their ID, name, and a count of elements using that type.</div>
+    </div>
+
+    <h2>2. Elements Management</h2>
+    <div class="example">
+        <h3>Elements List</h3>
+        <pre><code>
+&lt;!-- Elements List --&gt;
+&lt;div class="card shadow mb-4"&gt;
+    &lt;div class="card-header bg-primary text-white d-flex justify-content-between align-items-center"&gt;
+        &lt;h5 class="mb-0"&gt;&lt;i class="fas fa-cube me-2"&gt;&lt;/i&gt;Elements Inventory&lt;/h5&gt;
+        &lt;a href="{{ url_for('new_element') }}" class="btn btn-light btn-sm"&gt;
+            &lt;i class="fas fa-plus me-1"&gt;&lt;/i&gt;Add Element
+        &lt;/a&gt;
+    &lt;/div&gt;
+    &lt;div class="card-body"&gt;
+        &lt;!-- Search and Filter Controls --&gt;
+        &lt;div class="row mb-3"&gt;
+            &lt;div class="col-md-6"&gt;
+                &lt;input type="text" id="elementSearch" class="form-control" placeholder="Search elements..."&gt;
+            &lt;/div&gt;
+            &lt;div class="col-md-3"&gt;
+                &lt;select id="typeFilter" class="form-select"&gt;
+                    &lt;option value=""&gt;All Types&lt;/option&gt;
+                    {% for type in element_types %}
+                    &lt;option value="{{ type.type_name }}"&gt;{{ type.type_name }}&lt;/option&gt;
+                    {% endfor %}
+                &lt;/select&gt;
+            &lt;/div&gt;
+            &lt;div class="col-md-3"&gt;
+                &lt;select id="locationFilter" class="form-select"&gt;
+                    &lt;option value=""&gt;All Locations&lt;/option&gt;
+                    {% for location in locations %}
+                    &lt;option value="{{ location }}"&gt;{{ location }}&lt;/option&gt;
+                    {% endfor %}
+                &lt;/select&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        
+        &lt;div class="table-responsive"&gt;
+            &lt;table class="table table-hover" id="elementsTable"&gt;
+                &lt;thead&gt;
+                    &lt;tr&gt;
+                        &lt;th&gt;ID&lt;/th&gt;
+                        &lt;th&gt;Type&lt;/th&gt;
+                        &lt;th&gt;Description&lt;/th&gt;
+                        &lt;th&gt;Item #&lt;/th&gt;
+                        &lt;th&gt;Quantity&lt;/th&gt;
+                        &lt;th&gt;Location&lt;/th&gt;
+                        &lt;th&gt;Kit Component&lt;/th&gt;
+                        &lt;th&gt;Actions&lt;/th&gt;
+                    &lt;/tr&gt;
+                &lt;/thead&gt;
+                &lt;tbody&gt;
+                    {% for element in elements %}
+                    &lt;tr&gt;
+                        &lt;td&gt;{{ element.element_id }}&lt;/td&gt;
+                        &lt;td&gt;{{ element.type_name }}&lt;/td&gt;
+                        &lt;td&gt;{{ element.item_description }}&lt;/td&gt;
+                        &lt;td&gt;{{ element.item_number or '-' }}&lt;/td&gt;
+                        &lt;td&gt;{{ element.quantity }}&lt;/td&gt;
+                        &lt;td&gt;{{ element.location }}&lt;/td&gt;
+                        &lt;td&gt;{{ 'Yes' if element.is_kit_component else 'No' }}&lt;/td&gt;
+                        &lt;td&gt;
+                            &lt;a href="{{ url_for('view_element', element_id=element.element_id) }}" class="btn btn-sm btn-outline-info"&gt;
+                                &lt;i class="fas fa-eye"&gt;&lt;/i&gt;
+                            &lt;/a&gt;
+                            &lt;a href="{{ url_for('edit_element', element_id=element.element_id) }}" class="btn btn-sm btn-outline-primary"&gt;
+                                &lt;i class="fas fa-edit"&gt;&lt;/i&gt;
+                            &lt;/a&gt;
+                        &lt;/td&gt;
+                    &lt;/tr&gt;
+                    {% endfor %}
+                &lt;/tbody&gt;
+            &lt;/table&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+        </code></pre>
+        <div class="comment">This example shows how to display a list of elements with search and filter functionality. It includes columns for all the element properties from the schema.</div>
+    </div>
+
+    <div class="example">
+        <h3>New Element Form</h3>
+        <pre><code>
+&lt;!-- New Element Form --&gt;
+&lt;form method="post" action="{{ url_for('new_element') }}"&gt;
+    &lt;div class="row mb-3"&gt;
+        &lt;div class="col-md-6"&gt;
+            &lt;label for="type_id" class="form-label"&gt;Element Type*&lt;/label&gt;
+            &lt;select class="form-select" id="type_id" name="type_id" required&gt;
+                &lt;option value=""&gt;Select Element Type&lt;/option&gt;
+                {% for type in element_types %}
+                &lt;option value="{{ type.type_id }}"&gt;{{ type.type_name }}&lt;/option&gt;
+                {% endfor %}
+            &lt;/select&gt;
+        &lt;/div&gt;
+        &lt;div class="col-md-6"&gt;
+            &lt;label for="item_number" class="form-label"&gt;Item Number&lt;/label&gt;
+            &lt;input type="text" class="form-control" id="item_number" name="item_number"&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+    
+    &lt;div class="mb-3"&gt;
+        &lt;label for="item_description" class="form-label"&gt;Description*&lt;/label&gt;
+        &lt;input type="text" class="form-control" id="item_description" name="item_description" required&gt;
+    &lt;/div&gt;
+    
+    &lt;div class="row mb-3"&gt;
+        &lt;div class="col-md-6"&gt;
+            &lt;label for="quantity" class="form-label"&gt;Quantity*&lt;/label&gt;
+            &lt;input type="number" class="form-control" id="quantity" name="quantity" min="0" value="1" required&gt;
+        &lt;/div&gt;
+        &lt;div class="col-md-6"&gt;
+            &lt;label for="location" class="form-label"&gt;Location*&lt;/label&gt;
+            &lt;input type="text" class="form-control" id="location" name="location" required&gt;
+            &lt;small class="text-muted"&gt;Where the element is stored&lt;/small&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+    
+    &lt;div class="mb-3 form-check"&gt;
+        &lt;input type="checkbox" class="form-check-input" id="is_kit_component" name="is_kit_component"&gt;
+        &lt;label class="form-check-label" for="is_kit_component"&gt;
+            This element is a component of a kit
+        &lt;/label&gt;
+    &lt;/div&gt;
+    
+    &lt;div class="d-grid gap-2 d-md-flex justify-content-md-end"&gt;
+        &lt;button type="submit" class="btn btn-primary"&gt;
+            &lt;i class="fas fa-save me-1"&gt;&lt;/i&gt;Save Element
+        &lt;/button&gt;
+    &lt;/div&gt;
+&lt;/form&gt;
+        </code></pre>
+        <div class="comment">This form allows users to create new elements, selecting the element type from a dropdown populated with data from the element_types table.</div>
+    </div>
+
+    <h2>3. Kits Management</h2>
+    <div class="example">
+        <h3>Kits List</h3>
+        <pre><code>
+&lt;!-- Kits List --&gt;
+&lt;div class="card shadow mb-4"&gt;
+    &lt;div class="card-header bg-primary text-white d-flex justify-content-between align-items-center"&gt;
+        &lt;h5 class="mb-0"&gt;&lt;i class="fas fa-boxes me-2"&gt;&lt;/i&gt;Equipment Kits&lt;/h5&gt;
+        &lt;a href="{{ url_for('new_kit') }}" class="btn btn-light btn-sm"&gt;
+            &lt;i class="fas fa-plus me-1"&gt;&lt;/i&gt;Create Kit
+        &lt;/a&gt;
+    &lt;/div&gt;
+    &lt;div class="card-body"&gt;
+        &lt;div class="row row-cols-1 row-cols-md-3 g-4"&gt;
+            {% for kit in kits %}
+            &lt;div class="col"&gt;
+                &lt;div class="card h-100"&gt;
+                    &lt;div class="card-header"&gt;
+                        &lt;h5 class="card-title mb-0"&gt;{{ kit.kit_name }}&lt;/h5&gt;
+                    &lt;/div&gt;
+                    &lt;div class="card-body"&gt;
+                        &lt;p class="card-text"&gt;{{ kit.description or 'No description available' }}&lt;/p&gt;
+                        &lt;p&gt;&lt;strong&gt;Contains:&lt;/strong&gt; {{ kit.element_count }} elements&lt;/p&gt;
+                    &lt;/div&gt;
+                    &lt;div class="card-footer bg-transparent d-flex justify-content-between"&gt;
+                        &lt;a href="{{ url_for('view_kit', kit_id=kit.kit_id) }}" class="btn btn-sm btn-outline-primary"&gt;
+                            &lt;i class="fas fa-eye me-1"&gt;&lt;/i&gt;View Details
+                        &lt;/a&gt;
+                        &lt;a href="{{ url_for('edit_kit', kit_id=kit.kit_id) }}" class="btn btn-sm btn-outline-secondary"&gt;
+                            &lt;i class="fas fa-edit me-1"&gt;&lt;/i&gt;Edit
+                        &lt;/a&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            {% endfor %}
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+        </code></pre>
+        <div class="comment">This example shows how to display a grid of kit cards with basic information and action buttons for each kit.</div>
+    </div>
+
+    <div class="example">
+        <h3>View Kit Details</h3>
+        <pre><code>
+&lt;!-- Kit Details --&gt;
+&lt;div class="card shadow mb-4"&gt;
+    &lt;div class="card-header bg-primary text-white"&gt;
+        &lt;h5 class="mb-0"&gt;{{ kit.kit_name }}&lt;/h5&gt;
+    &lt;/div&gt;
+    &lt;div class="card-body"&gt;
+        &lt;div class="row mb-4"&gt;
+            &lt;div class="col-md-12"&gt;
+                &lt;h6&gt;Description:&lt;/h6&gt;
+                &lt;p&gt;{{ kit.description or 'No description available' }}&lt;/p&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        
+        &lt;h6&gt;Elements in this Kit:&lt;/h6&gt;
+        &lt;div class="table-responsive"&gt;
+            &lt;table class="table table-hover"&gt;
+                &lt;thead&gt;
+                    &lt;tr&gt;
+                        &lt;th&gt;Element&lt;/th&gt;
+                        &lt;th&gt;Type&lt;/th&gt;
+                        &lt;th&gt;Item #&lt;/th&gt;
+                        &lt;th&gt;Location&lt;/th&gt;
+                        &lt;th&gt;Quantity in Kit&lt;/th&gt;
+                    &lt;/tr&gt;
+                &lt;/thead&gt;
+                &lt;tbody&gt;
+                    {% for element in elements %}
+                    &lt;tr&gt;
+                        &lt;td&gt;{{ element.item_description }}&lt;/td&gt;
+                        &lt;td&gt;{{ element.type_name }}&lt;/td&gt;
+                        &lt;td&gt;{{ element.item_number or '-' }}&lt;/td&gt;
+                        &lt;td&gt;{{ element.location }}&lt;/td&gt;
+                        &lt;td&gt;{{ element.quantity }}&lt;/td&gt;
+                    &lt;/tr&gt;
+                    {% endfor %}
+                &lt;/tbody&gt;
+            &lt;/table&gt;
+        &lt;/div&gt;
+        
+        &lt;div class="mt-4"&gt;
+            &lt;h6&gt;Events Using This Kit:&lt;/h6&gt;
+            {% if events %}
+            &lt;ul class="list-group"&gt;
+                {% for event in events %}
+                &lt;li class="list-group-item d-flex justify-content-between align-items-center"&gt;
+                    &lt;div&gt;
+                        &lt;a href="{{ url_for('view_event', event_id=event.event_id) }}"&gt;{{ event.event_name }}&lt;/a&gt;
+                        &lt;span class="text-muted ms-2"&gt;{{ event.event_date }}&lt;/span&gt;
+                    &lt;/div&gt;
+                    &lt;span class="badge bg-primary rounded-pill"&gt;{{ event.status }}&lt;/span&gt;
+                &lt;/li&gt;
+                {% endfor %}
+            &lt;/ul&gt;
+            {% else %}
+            &lt;p class="text-muted"&gt;This kit is not currently assigned to any events.&lt;/p&gt;
+            {% endif %}
+        &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="card-footer bg-transparent d-flex justify-content-between"&gt;
+        &lt;a href="{{ url_for('kits') }}" class="btn btn-outline-secondary"&gt;
+            &lt;i class="fas fa-arrow-left me-1"&gt;&lt;/i&gt;Back to Kits
+        &lt;/a&gt;
+        &lt;div&gt;
+            &lt;a href="{{ url_for('edit_kit', kit_id=kit.kit_id) }}" class="btn btn-primary"&gt;
+                &lt;i class="fas fa-edit me-1"&gt;&lt;/i&gt;Edit Kit
+            &lt;/a&gt;
+            &lt;button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteKitModal"&gt;
+                &lt;i class="fas fa-trash me-1"&gt;&lt;/i&gt;Delete
+            &lt;/button&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+        </code></pre>
+        <div class="comment">This example shows how to display detailed information about a kit, including its elements and events using it.</div>
+    </div>
+
+    <h2>4. Events Management</h2>
+    <div class="example">
+        <h3>New Event Form with Kit Selection</h3>
+        <pre><code>
+&lt;!-- New Event Form with Kit Selection --&gt;
+&lt;form method="post" action="{{ url_for('new_event') }}"&gt;
+    &lt;div class="card shadow mb-4"&gt;
+        &lt;div class="card-header bg-primary text-white"&gt;
+            &lt;h5 class="mb-0"&gt;Basic Event Information&lt;/h5&gt;
+        &lt;/div&gt;
+        &lt;div class="card-body"&gt;
+            &lt;div class="row mb-3"&gt;
+                &lt;div class="col-md-6"&gt;
+                    &lt;label for="event_name" class="form-label"&gt;Event Name*&lt;/label&gt;
+                    &lt;input type="text" class="form-control" id="event_name" name="event_name" required&gt;
+                &lt;/div&gt;
+                &lt;div class="col-md-6"&gt;
+                    &lt;label for="client_id" class="form-label"&gt;Client&lt;/label&gt;
+                    &lt;select class="form-select" id="client_id" name="client_id"&gt;
+                        &lt;option value=""&gt;Select Client&lt;/option&gt;
+                        {% for client in clients %}
+                        &lt;option value="{{ client.id }}"&gt;{{ client.name }}&lt;/option&gt;
+                        {% endfor %}
+                    &lt;/select&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            
+            &lt;div class="row mb-3"&gt;
+                &lt;div class="col-md-4"&gt;
+                    &lt;label for="event_date" class="form-label"&gt;Event Date*&lt;/label&gt;
+                    &lt;input type="date" class="form-control" id="event_date" name="event_date" required&gt;
+                &lt;/div&gt;
+                &lt;div class="col-md-4"&gt;
+                    &lt;label for="drop_off_time" class="form-label"&gt;Drop-off Time&lt;/label&gt;
+                    &lt;input type="time" class="form-control" id="drop_off_time" name="drop_off_time"&gt;
+                &lt;/div&gt;
+                &lt;div class="col-md-4"&gt;
+                    &lt;label for="pickup_time" class="form-label"&gt;Pickup Time&lt;/label&gt;
+                    &lt;input type="time" class="form-control" id="pickup_time" name="pickup_time"&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            
+            &lt;div class="row mb-3"&gt;
+                &lt;div class="col-md-6"&gt;
+                    &lt;label for="manager" class="form-label"&gt;Manager&lt;/label&gt;
+                    &lt;input type="text" class="form-control" id="manager" name="manager"&gt;
+                &lt;/div&gt;
+                &lt;div class="col-md-6"&gt;
+                    &lt;label for="event_location" class="form-label"&gt;Event Location&lt;/label&gt;
+                    &lt;input type="text" class="form-control" id="event_location" name="event_location"&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            
+            &lt;div class="row mb-3"&gt;
+                &lt;div class="col-md-6"&gt;
+                    &lt;label for="onsite_contact" class="form-label"&gt;Onsite Contact&lt;/label&gt;
+                    &lt;input type="text" class="form-control" id="onsite_contact" name="onsite_contact"&gt;
+                &lt;/div&gt;
+                &lt;div class="col-md-6"&gt;
+                    &lt;label for="onsite_contact_phone" class="form-label"&gt;Contact Phone&lt;/label&gt;
+                    &lt;input type="tel" class="form-control" id="onsite_contact_phone" name="onsite_contact_phone"&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            
+            &lt;div class="row mb-3"&gt;
+                &lt;div class="col-md-8"&gt;
+                    &lt;label for="items_needed" class="form-label"&gt;Items Needed&lt;/label&gt;
+                    &lt;input type="text" class="form-control" id="items_needed" name="items_needed"&gt;
+                &lt;/div&gt;
+                &lt;div class="col-md-4"&gt;
+                    &lt;label for="boxes_from_pi" class="form-label"&gt;Boxes from PI&lt;/label&gt;
+                    &lt;input type="number" class="form-control" id="boxes_from_pi" name="boxes_from_pi" min="0" value="0"&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            
+            &lt;div class="mb-3"&gt;
+                &lt;label for="notes" class="form-label"&gt;Notes&lt;/label&gt;
+                &lt;textarea class="form-control" id="notes" name="notes" rows="3"&gt;&lt;/textarea&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+    
+    &lt;div class="card shadow mb-4"&gt;
+        &lt;div class="card-header bg-primary text-white"&gt;
+            &lt;h5 class="mb-0"&gt;Kit Selection&lt;/h5&gt;
+        &lt;/div&gt;
+        &lt;div class="card-body"&gt;
+            &lt;p class="mb-3"&gt;Select pre-defined kits to include in this event:&lt;/p&gt;
+            
+            &lt;div class="row row-cols-1 row-cols-md-3 g-4 mb-4"&gt;
+                {% for kit in kits %}
+                &lt;div class="col"&gt;
+                    &lt;div class="card h-100"&gt;
+                        &lt;div class="card-header"&gt;
+                            &lt;div class="form-check"&gt;
+                                &lt;input class="form-check-input" type="checkbox" value="{{ kit.kit_id }}" 
+                                      id="kit{{ kit.kit_id }}" name="kit_ids"&gt;
+                                &lt;label class="form-check-label" for="kit{{ kit.kit_id }}"&gt;
+                                    {{ kit.kit_name }}
+                                &lt;/label&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                        &lt;div class="card-body"&gt;
+                            &lt;p class="card-text small"&gt;{{ kit.description }}&lt;/p&gt;
+                            &lt;p class="small"&gt;&lt;strong&gt;Contains:&lt;/strong&gt; {{ kit.element_count }} elements&lt;/p&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+                {% endfor %}
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+    
+    &lt;div class="card shadow mb-4"&gt;
+        &lt;div class="card-header bg-primary text-white"&gt;
+            &lt;h5 class="mb-0"&gt;Individual Elements&lt;/h5&gt;
+        &lt;/div&gt;
+        &lt;div class="card-body"&gt;
+            &lt;p class="mb-3"&gt;Select additional individual elements for this event:&lt;/p&gt;
+            
+            &lt;div class="table-responsive"&gt;
+                &lt;table class="table table-hover"&gt;
+                    &lt;thead&gt;
+                        &lt;tr&gt;
+                            &lt;th style="width: 50px;"&gt;&lt;/th&gt;
+                            &lt;th&gt;Element&lt;/th&gt;
+                            &lt;th&gt;Type&lt;/th&gt;
+                            &lt;th&gt;Available&lt;/th&gt;
+                            &lt;th style="width: 150px;"&gt;Quantity&lt;/th&gt;
+                        &lt;/tr&gt;
+                    &lt;/thead&gt;
+                    &lt;tbody&gt;
+                        {% for element in elements %}
+                        &lt;tr&gt;
+                            &lt;td&gt;
+                                &lt;div class="form-check"&gt;
+                                    &lt;input class="form-check-input element-check" type="checkbox" 
+                                          id="element{{ element.element_id }}" name="element_ids" 
+                                          value="{{ element.element_id }}"&gt;
+                                &lt;/div&gt;
+                            &lt;/td&gt;
+                            &lt;td&gt;
+                                &lt;label for="element{{ element.element_id }}"&gt;{{ element.item_description }}&lt;/label&gt;
+                                {% if element.item_number %}
+                                &lt;small class="d-block text-muted"&gt;#{{ element.item_number }}&lt;/small&gt;
+                                {% endif %}
+                            &lt;/td&gt;
+                            &lt;td&gt;{{ element.type_name }}&lt;/td&gt;
+                            &lt;td&gt;{{ element.quantity }}&lt;/td&gt;
+                            &lt;td&gt;
+                                &lt;input type="number" class="form-control element-quantity" 
+                                      name="element_qty{{ element.element_id }}" min="1" 
+                                      max="{{ element.quantity }}" value="1" disabled&gt;
+                            &lt;/td&gt;
+                        &lt;/tr&gt;
+                        {% endfor %}
+                    &lt;/tbody&gt;
+                &lt;/table&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+    
+    &lt;div class="d-grid gap-2 d-md-flex justify-content-md-end"&gt;
+        &lt;a href="{{ url_for('events') }}" class="btn btn-secondary me-2"&gt;Cancel&lt;/a&gt;
+        &lt;button type="submit" class="btn btn-primary"&gt;
+            &lt;i class="fas fa-save me-1"&gt;&lt;/i&gt;Create Event
+        &lt;/button&gt;
+    &lt;/div&gt;
+&lt;/form&gt;
+
+&lt;script&gt;
+    document.addEventListener('DOMContentLoaded', function() {
+        // Enable/disable quantity inputs based on checkboxes
+        const elementChecks = document.querySelectorAll('.element-check');
+        
+        elementChecks.forEach(check => {
+            check.addEventListener('change', function() {
+                const row = this.closest('tr');
+                const quantityInput = row.querySelector('.element-quantity');
+                
+                if (this.checked) {
+                    row.classList.add('table-active');
+                    quantityInput.disabled = false;
+                } else {
+                    row.classList.remove('table-active');
+                    quantityInput.disabled = true;
+                }
+            });
+        });
+    });
+&lt;/script&gt;
+        </code></pre>
+        <div class="comment">This form example shows how to create a new event with the ability to select both kit packages and individual elements.</div>
+    </div>
+
+    <div class="example">
+        <h3>View Event Details</h3>
+        <pre><code>
+&lt;!-- Event Details --&gt;
+&lt;div class="card shadow mb-4"&gt;
+    &lt;div class="card-header bg-primary text-white"&gt;
+        &lt;h5 class="mb-0"&gt;{{ event.event_name }}&lt;/h5&gt;
+    &lt;/div&gt;
+    &lt;div class="card-body"&gt;
+        &lt;div class="row mb-4"&gt;
+            &lt;div class="col-md-4"&gt;
+                &lt;h6&gt;Event Details:&lt;/h6&gt;
+                &lt;ul class="list-unstyled"&gt;
+                    &lt;li&gt;&lt;strong&gt;Date:&lt;/strong&gt; {{ event.event_date }}&lt;/li&gt;
+                    &lt;li&gt;&lt;strong&gt;Drop-off:&lt;/strong&gt; {{ event.drop_off_time or 'Not specified' }}&lt;/li&gt;
+                    &lt;li&gt;&lt;strong&gt;Pickup:&lt;/strong&gt; {{ event.pickup_time or 'Not specified' }}&lt;/li&gt;
+                    &lt;li&gt;&lt;strong&gt;Location:&lt;/strong&gt; {{ event.event_location or 'Not specified' }}&lt;/li&gt;
+                &lt;/ul&gt;
+            &lt;/div&gt;
+            &lt;div class="col-md-4"&gt;
+                &lt;h6&gt;Client:&lt;/h6&gt;
+                &lt;p&gt;{% if event.client_name %}{{ event.client_name }}{% else %}No client assigned{% endif %}&lt;/p&gt;
+                
+                &lt;h6&gt;Manager:&lt;/h6&gt;
+                &lt;p&gt;{{ event.manager or 'Not assigned' }}&lt;/p&gt;
+            &lt;/div&gt;
+            &lt;div class="col-md-4"&gt;
+                &lt;h6&gt;Onsite Contact:&lt;/h6&gt;
+                {% if event.onsite_contact %}
+                &lt;p&gt;{{ event.onsite_contact }}&lt;br&gt;
+                   {{ event.onsite_contact_phone or 'No phone provided' }}&lt;/p&gt;
+                {% else %}
+                &lt;p&gt;Not specified&lt;/p&gt;
+                {% endif %}
+                
+                &lt;h6&gt;Boxes from PI:&lt;/h6&gt;
+                &lt;p&gt;{{ event.boxes_from_pi or '0' }}&lt;/p&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        
+        {% if event.notes %}
+        &lt;div class="row mb-4"&gt;
+            &lt;div class="col-md-12"&gt;
+                &lt;h6&gt;Notes:&lt;/h6&gt;
+                &lt;p&gt;{{ event.notes }}&lt;/p&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        {% endif %}
+        
+        &lt;h6&gt;Elements for this Event:&lt;/h6&gt;
+        &lt;div class="table-responsive"&gt;
+            &lt;table class="table table-hover"&gt;
+                &lt;thead&gt;
+                    &lt;tr&gt;
+                        &lt;th&gt;Element&lt;/th&gt;
+                        &lt;th&gt;Type&lt;/th&gt;
+                        &lt;th&gt;Item #&lt;/th&gt;
+                        &lt;th&gt;Quantity&lt;/th&gt;
+                        &lt;th&gt;Location&lt;/th&gt;
+                    &lt;/tr&gt;
+                &lt;/thead&gt;
+                &lt;tbody&gt;
+                    {% for element in elements %}
+                    &lt;tr&gt;
+                        &lt;td&gt;{{ element.item_description }}&lt;/td&gt;
+                        &lt;td&gt;{{ element.type_name }}&lt;/td&gt;
+                        &lt;td&gt;{{ element.item_number or '-' }}&lt;/td&gt;
+                        &lt;td&gt;{{ element.quantity }}&lt;/td&gt;
+                        &lt;td&gt;{{ element.location }}&lt;/td&gt;
+                    &lt;/tr&gt;
+                    {% endfor %}
+                &lt;/tbody&gt;
+            &lt;/table&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="card-footer bg-transparent d-flex justify-content-between"&gt;
+        &lt;a href="{{ url_for('events') }}" class="btn btn-outline-secondary"&gt;
+            &lt;i class="fas fa-arrow-left me-1"&gt;&lt;/i&gt;Back to Events
+        &lt;/a&gt;
+        &lt;div&gt;
+            &lt;a href="{{ url_for('edit_event', event_id=event.event_id) }}" class="btn btn-primary"&gt;
+                &lt;i class="fas fa-edit me-1"&gt;&lt;/i&gt;Edit Event
+            &lt;/a&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+        </code></pre>
+        <div class="comment">This example shows how to display detailed event information including all elements assigned to it.</div>
+    </div>
+
+    <h2>5. Additional Frontend Considerations</h2>
+    <ul>
+        <li><strong>Responsive Design:</strong> Ensure all forms and displays work on both desktop and mobile by using Bootstrap's responsive grid system.</li>
+        <li><strong>Form Validation:</strong> Implement client-side validation for forms to provide immediate feedback.</li>
+        <li><strong>Dynamic Element Selection:</strong> When selecting elements or kits for events, show real-time availability updates.</li>
+        <li><strong>Kit Assignment UI:</strong> When a kit is selected for an event, dynamically update the individual elements list to show which elements are already included in the kit.</li>
+        <li><strong>Element Type Filtering:</strong> Allow users to filter elements by type, especially when picking elements for events or kits.</li>
+        <li><strong>Quantity Tracking:</strong> Show warnings when assigning more elements than available.</li>
+        <li><strong>Event Timeline Visualization:</strong> Consider implementing a calendar or timeline view to visualize when equipment is in use.</li>
+    </ul>
+
+    <h2>6. JavaScript for Dynamic Interactions</h2>
+    <div class="example">
+        <h3>Dynamic Kit Selection Script</h3>
+        <pre><code>
+&lt;script&gt;
+    document.addEventListener('DOMContentLoaded', function() {
+        // Kit selection handling
+        const kitCheckboxes = document.querySelectorAll('input[name="kit_ids"]');
+        const elementRows = document.querySelectorAll('tr.element-item');
+        const elementCheckboxes = document.querySelectorAll('.element-check');
+        
+        // Map of kit elements: kitId -> {elementId -> quantity}
+        const kitElements = {
+            {% for kit in kits %}
+            {{ kit.kit_id }}: {
+                {% for element in kit_elements.get(kit.kit_id, []) %}
+                {{ element.element_id }}: {{ element.quantity }},
+                {% endfor %}
+            },
+            {% endfor %}
+        };
+        
+        // Function to update element availability when a kit is selected
+        function updateElementsFromKits() {
+            // Reset all elements first
+            elementRows.forEach(row => {
+                row.classList.remove('table-active', 'table-warning');
+                const checkbox = row.querySelector('.element-check');
+                const quantityInput = row.querySelector('.element-quantity');
+                checkbox.checked = false;
+                checkbox.disabled = false;
+                quantityInput.disabled = true;
+                quantityInput.value = 1;
+            });
+            
+            // Get all selected kits
+            const selectedKits = Array.from(kitCheckboxes)
+                .filter(cb => cb.checked)
+                .map(cb => parseInt(cb.value));
+            
+            // Track elements used by selected kits
+            const usedElements = {};
+            
+            // Process each selected kit
+            selectedKits.forEach(kitId => {
+                if (kitElements[kitId]) {
+                    // For each element in the kit
+                    Object.entries(kitElements[kitId]).forEach(([elementId, quantity]) => {
+                        elementId = parseInt(elementId);
+                        
+                        // If this element is already tracked, add quantities
+                        if (usedElements[elementId]) {
+                            usedElements[elementId] += quantity;
+                        } else {
+                            usedElements[elementId] = quantity;
+                        }
+                    });
+                }
+            });
+            
+            // Update the UI for each element used in kits
+            Object.entries(usedElements).forEach(([elementId, quantity]) => {
+                elementId = parseInt(elementId);
+                const row = document.querySelector(`tr[data-element-id="${elementId}"]`);
+                if (row) {
+                    const checkbox = row.querySelector('.element-check');
+                    const quantityInput = row.querySelector('.element-quantity');
+                    
+                    // Mark as used by kit
+                    row.classList.add('table-warning');
+                    checkbox.checked = true;
+                    checkbox.disabled = true; // Can't deselect elements that are part of selected kits
+                    quantityInput.disabled = false;
+                    quantityInput.value = quantity;
+                }
+            });
+        }
+        
+        // Attach event listeners to kit checkboxes
+        kitCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateElementsFromKits);
+        });
+        
+        // Element selection handling 
+        elementCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                if (!this.disabled) { // Only handle manual changes
+                    const row = this.closest('tr');
+                    const quantityInput = row.querySelector('.element-quantity');
+                    
+                    if (this.checked) {
+                        row.classList.add('table-active');
+                        quantityInput.disabled = false;
+                    } else {
+                        row.classList.remove('table-active');
+                        quantityInput.disabled = true;
+                    }
+                }
+            });
+        });
+    });
+&lt;/script&gt;
+        </code></pre>
+        <div class="comment">This script demonstrates how to handle the dynamic interaction between kit selection and individual element selection in event forms. When a kit is selected, its component elements are automatically checked and the appropriate quantities set.</div>
+    </div>
+
+    <h2>Summary of Key Frontend Adaptations</h2>
+    <ol>
+        <li><strong>Element Type Management:</strong> Create interfaces for maintaining the catalog of element types.</li>
+        <li><strong>Elements Inventory:</strong> Develop forms and views to track individual elements, their quantities, and locations.</li>
+        <li><strong>Kit Composer:</strong> Build interfaces that allow creating predefined sets of elements as kits.</li>
+        <li><strong>Event Creation with Kit Support:</strong> Enhance event forms to allow selecting both kits and individual elements with appropriate quantity controls.</li>
+        <li><strong>Inventory Tracking:</strong> Implement interfaces that show element availability and prevent overbooking.</li>
+        <li><strong>Dynamic Client-Side Interactions:</strong> Use JavaScript to create responsive, user-friendly interfaces for complex operations like kit assignment.</li>
+    </ol>
+
+    <p>These examples provide a framework for adapting your HTML forms and displays to work with the new database schema structure, focusing on the relationships between element types, elements, kits, and events.</p>
+</body>
+</html>

@@ -1,0 +1,179 @@
+{% extends 'layout.html' %}
+
+{% block title %}Edit {{ client.name }} - QCS Event Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>
+        <i class="fas fa-edit me-2"></i>Edit Client
+    </h1>
+    <div>
+        <a href="{{ url_for('view_client', client_id=client.id) }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Client Details
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-warning">
+                <h5 class="mb-0 text-dark"><i class="fas fa-building me-2"></i>Client Information</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label for="name" class="form-label">Client Name*</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ client.name }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="color" class="form-label">Calendar Color*</label>
+                            <input type="color" class="form-control form-control-color w-100" id="color" name="color" value="{{ client.color }}">
+                            <div class="form-text">Color used in calendar and client badges</div>
+                        </div>
+                    </div>
+                    
+                    <h5 class="border-bottom pb-2 mb-3">Contact Information</h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="contact_person" class="form-label">Contact Person</label>
+                            <input type="text" class="form-control" id="contact_person" name="contact_person" value="{{ client.contact_person or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="email" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ client.email or '' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="phone" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" value="{{ client.phone or '' }}">
+                        </div>
+                    </div>
+                    
+                    <h5 class="border-bottom pb-2 mb-3">Address Information</h5>
+                    
+                    <div class="mb-3">
+                        <label for="address" class="form-label">Street Address</label>
+                        <input type="text" class="form-control" id="address" name="address" value="{{ client.address or '' }}">
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-5">
+                            <label for="city" class="form-label">City</label>
+                            <input type="text" class="form-control" id="city" name="city" value="{{ client.city or '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="state" class="form-label">State</label>
+                            <input type="text" class="form-control" id="state" name="state" value="{{ client.state or '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="zip" class="form-label">ZIP Code</label>
+                            <input type="text" class="form-control" id="zip" name="zip" value="{{ client.zip or '' }}">
+                        </div>
+                    </div>
+                    
+                    <h5 class="border-bottom pb-2 mb-3">Additional Information</h5>
+                    
+                    <div class="mb-3">
+                        <label for="preferences" class="form-label">Preferences</label>
+                        <input type="text" class="form-control" id="preferences" name="preferences"
+                               placeholder="e.g., Preferred setup, payment terms, etc." value="{{ client.preferences or '' }}">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3"
+                                  placeholder="Additional information about this client">{{ client.notes or '' }}</textarea>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-save me-1"></i>Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Client Information</h5>
+            </div>
+            <div class="card-body">
+                <p>Update client record with all relevant contact information. Fields marked with * are required.</p>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-lightbulb me-2"></i>Tips:
+                    <ul class="mb-0">
+                        <li>Choose a distinct color for easy recognition in the calendar</li>
+                        <li>Keep contact information up to date for improved communication</li>
+                        <li>Document specific preferences to provide better service</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card shadow">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-trash-alt me-2"></i>Delete Client</h5>
+            </div>
+            <div class="card-body">
+                <p>Warning: Deleting this client will also remove all associated events and invoices.</p>
+                <p><strong>This action cannot be undone!</strong></p>
+                <button type="button" class="btn btn-danger w-100" data-bs-toggle="modal" data-bs-target="#deleteClientModal">
+                    <i class="fas fa-trash-alt me-1"></i>Delete Client
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Client Modal -->
+<div class="modal fade" id="deleteClientModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Delete Client
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the client <strong>{{ client.name }}</strong>?</p>
+                <p><strong>This will also delete all associated events and invoices!</strong></p>
+                <p><small class="text-danger">This action cannot be undone!</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('delete_client', client_id=client.id) }}" method="post">
+                    <button type="submit" class="btn btn-danger">Delete Client</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        const colorInput = document.getElementById('color');
+        const nameInput = document.getElementById('name');
+        
+        // Live preview of color selection
+        colorInput.addEventListener('input', function() {
+            nameInput.style.borderLeft = `5px solid ${this.value}`;
+        });
+        
+        // Initial color preview
+        nameInput.style.borderLeft = `5px solid ${colorInput.value}`;
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,127 @@
+{% extends 'layout.html' %}
+
+{% block title %}Edit User - QCS Event Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-user-edit me-2"></i>Edit User</h1>
+    <a href="{{ url_for('users') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Back to Users
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-user-edit me-2"></i>Edit User: {{ user.username }}</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="username" class="form-label">Username*</label>
+                            <input type="text" class="form-control" id="username" name="username" value="{{ user.username }}" required>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="full_name" class="form-label">Full Name*</label>
+                            <input type="text" class="form-control" id="full_name" name="full_name" value="{{ user.full_name }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email Address*</label>
+                        <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="new_password" class="form-label">New Password</label>
+                            <input type="password" class="form-control" id="new_password" name="new_password">
+                            <div class="form-text">Leave blank to keep current password</div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="role" class="form-label">Role*</label>
+                            <select class="form-select" id="role" name="role" required>
+                                <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Administrator</option>
+                                <option value="staff" {% if user.role == 'staff' %}selected{% endif %}>Staff</option>
+                                <option value="viewer" {% if user.role == 'viewer' %}selected{% endif %}>Viewer</option>
+                            </select>
+                            <div class="form-text">
+                                <span class="text-danger">Admin:</span> Full access to all features
+                                <br>
+                                <span class="text-success">Staff:</span> Can manage events and clients
+                                <br>
+                                <span class="text-info">Viewer:</span> Read-only access
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>Account Details:
+                        <ul class="mb-0">
+                            <li>Created: {{ user.created_at }}</li>
+                            <li>Last Login: {% if user.last_login %}{{ user.last_login }}{% else %}Never{% endif %}</li>
+                        </ul>
+                    </div>
+                    
+                    {% if user.id == session.user_id %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>You are editing your own account. Be careful when changing your role or password.
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-save me-1"></i>Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        const password = document.getElementById('new_password');
+        
+        form.addEventListener('submit', function(e) {
+            if (password.value && password.value.length < 8) {
+                e.preventDefault();
+                alert('New password must be at least 8 characters long!');
+                return;
+            }
+        });
+        
+        // Visual role selector
+        const roleSelect = document.getElementById('role');
+        
+        // Apply initial styling based on selected role
+        applyRoleStyling(roleSelect);
+        
+        roleSelect.addEventListener('change', function() {
+            applyRoleStyling(this);
+        });
+        
+        function applyRoleStyling(select) {
+            // Remove all existing classes
+            select.classList.remove('border-danger', 'border-success', 'border-info');
+            
+            // Add appropriate class based on selection
+            if (select.value === 'admin') {
+                select.classList.add('border-danger');
+            } else if (select.value === 'staff') {
+                select.classList.add('border-success');
+            } else if (select.value === 'viewer') {
+                select.classList.add('border-info');
+            }
+        }
+    });
+</script>
+{% endblock %}

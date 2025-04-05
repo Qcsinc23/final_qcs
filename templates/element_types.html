@@ -1,0 +1,160 @@
+{% extends 'layout.html' %}
+
+{% block title %}Element Types - QCS Event Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-tags me-2"></i>Element Types</h1>
+    <div>
+        {% if 'admin' in session.role or 'staff' in session.role %}
+        <a href="{{ url_for('new_element_type') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Add Type
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-xl-6 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Total Element Types
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ types|length }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-tags fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-6 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Total Elements
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {% set total_elements = 0 %}
+                            {% for type in types %}
+                                {% set total_elements = total_elements + type.element_count %}
+                            {% endfor %}
+                            {{ total_elements }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-cubes fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header bg-white py-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <h5 class="mb-0 text-gray-800">All Element Types</h5>
+            </div>
+            <div class="col-auto">
+                <form method="get" class="d-flex">
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="Search..." name="search" value="{{ request.args.get('search', '') }}">
+                        <button class="btn btn-outline-secondary" type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if types %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Type Name</th>
+                            <th>Elements Count</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for type in types %}
+                        <tr>
+                            <td>{{ type.type_id }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-tag fa-lg text-secondary me-3"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">{{ type.type_name }}</h6>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ type.element_count }}</td>
+                            <td class="text-end">
+                                {% if 'admin' in session.role or 'staff' in session.role %}
+                                <div class="btn-group">
+                                    <a href="{{ url_for('edit_element_type', type_id=type.type_id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger {% if type.element_count > 0 %}disabled{% endif %}" 
+                                            data-bs-toggle="modal" data-bs-target="#deleteTypeModal{{ type.type_id }}"
+                                            {% if type.element_count > 0 %}disabled{% endif %}>
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        
+                        <!-- Delete Modal -->
+                        <div class="modal fade" id="deleteTypeModal{{ type.type_id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Confirm Delete</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>Are you sure you want to delete the element type <strong>{{ type.type_name }}</strong>?</p>
+                                        <p class="mb-0 text-danger">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>
+                                            This action cannot be undone.
+                                        </p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        <form action="{{ url_for('delete_element_type', type_id=type.type_id) }}" method="post">
+                                            <button type="submit" class="btn btn-danger">Delete Type</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>No element types found. 
+                {% if 'admin' in session.role or 'staff' in session.role %}
+                <a href="{{ url_for('new_element_type') }}">Add your first element type</a>.
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Invoice #{{ invoice.id }}</title>
+    <style>
+        @page {
+            size: letter;
+            margin: 2cm;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.5;
+            color: #333;
+        }
+        
+        .invoice-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        /* Client-specific colors */
+        .rwj-theme {
+            --client-color: #e74c3c; /* Red */
+        }
+        
+        .horizon-theme {
+            --client-color: #3498db; /* Blue */
+        }
+        
+        .invoice-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--client-color, #333);
+        }
+        
+        .invoice-title {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: var(--client-color, #333);
+        }
+        
+        .company-logo {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--client-color, #333);
+        }
+        
+        .invoice-details {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        
+        .invoice-details-left,
+        .invoice-details-right {
+            width: 48%;
+        }
+        
+        .invoice-details-right {
+            text-align: right;
+        }
+        
+        .client-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--client-color, #333);
+            margin-bottom: 10px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: var(--client-color, #333);
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+        }
+        
+        .event-details {
+            margin-bottom: 30px;
+        }
+        
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        
+        .invoice-table th {
+            background-color: var(--client-color, #333);
+            color: white;
+            text-align: left;
+            padding: 10px;
+        }
+        
+        .invoice-table td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .invoice-table .amount {
+            text-align: right;
+        }
+        
+        .invoice-total {
+            text-align: right;
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        
+        .invoice-notes {
+            margin-top: 40px;
+            font-size: 14px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 12px;
+            color: #777;
+        }
+        
+        .paid-stamp {
+            position: absolute;
+            top: 200px;
+            right: 30px;
+            transform: rotate(25deg);
+            font-size: 42px;
+            font-weight: bold;
+            color: green;
+            opacity: 0.4;
+            border: 10px solid green;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        
+        .unpaid-stamp {
+            position: absolute;
+            top: 200px;
+            right: 30px;
+            transform: rotate(25deg);
+            font-size: 42px;
+            font-weight: bold;
+            color: var(--client-color, #333);
+            opacity: 0.4;
+            border: 10px solid var(--client-color, #333);
+            padding: 10px;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-container {% if invoice.client_id == 1 %}rwj-theme{% elif invoice.client_id == 2 %}horizon-theme{% endif %}">
+        {% if invoice.status == 'paid' %}
+        <div class="paid-stamp">PAID</div>
+        {% else %}
+        <div class="unpaid-stamp">INVOICE</div>
+        {% endif %}
+        
+        <div class="invoice-header">
+            <div class="company-logo">QCS EVENT MANAGEMENT</div>
+            <div>123 Event Way, Jersey City, NJ 07302</div>
+            <div>(201) 555-1234 | info@qcsevents.com</div>
+        </div>
+        
+        <div class="invoice-title">INVOICE #{{ invoice.id }}</div>
+        
+        <div class="invoice-details">
+            <div class="invoice-details-left">
+                <div class="client-name">{{ invoice.client_name }}</div>
+                <div>ATTN: Accounts Payable</div>
+                <div>{{ invoice.client_name }} Corporate Office</div>
+                <div>New Jersey</div>
+            </div>
+            <div class="invoice-details-right">
+                <div><strong>Issue Date:</strong> {{ invoice.issue_date }}</div>
+                <div><strong>Status:</strong> {{ invoice.status|capitalize }}</div>
+                <div><strong>Terms:</strong> Net 30</div>
+            </div>
+        </div>
+        
+        <div class="event-details">
+            <div class="section-title">Event Information</div>
+            <div>
+                <strong>Event:</strong> {{ invoice.event_title }}
+            </div>
+            <div>
+                <strong>Date:</strong> {{ invoice.event_date }}
+            </div>
+            <div>
+                <strong>Location:</strong> {{ invoice.location or 'Not specified' }}
+            </div>
+            <div>
+                <strong>Times:</strong> 
+                {% if invoice.drop_off_time and invoice.pick_up_time %}
+                {{ invoice.drop_off_time }} to {{ invoice.pick_up_time }}
+                {% else %}
+                Not specified
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="section-title">Services & Charges</div>
+        <table class="invoice-table">
+            <thead>
+                <tr>
+                    <th width="10%">Qty</th>
+                    <th width="60%">Description</th>
+                    <th width="30%" class="amount">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if equipment_items %}
+                    {% for item in equipment_items %}
+                    <tr>
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ item.name }} {% if item.description %}- {{ item.description }}{% endif %}</td>
+                        <td class="amount">--</td>
+                    </tr>
+                    {% endfor %}
+                    <tr>
+                        <td colspan="2">Event Logistics Services</td>
+                        <td class="amount">${{ "%.2f"|format(invoice.amount) }}</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="2">Event Logistics Services</td>
+                        <td class="amount">${{ "%.2f"|format(invoice.amount) }}</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="2"><strong>Total</strong></td>
+                    <td class="amount"><strong>${{ "%.2f"|format(invoice.amount) }}</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+        
+        <div class="invoice-notes">
+            <p><strong>Notes:</strong></p>
+            <p>Thank you for your business! Please make payment within 30 days of the invoice date.</p>
+            <p>Payment can be made by check or ACH transfer. Please include the invoice number on all payments.</p>
+            <p>For questions regarding this invoice, please contact our accounting department at accounting@qcsevents.com</p>
+        </div>
+        
+        <div class="footer">
+            <p>QCS Event Management is a full-service event logistics provider.</p>
+            <p>This invoice was generated automatically by the QCS Event Management System.</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,808 @@
+{% extends 'layout.html' %}
+
+{% block title %}New Event - QCS Event Management{% endblock %}
+
+{% block head %}
+<style>
+    .template-card {
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .template-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .template-card.selected {
+        border: 2px solid #0d6efd;
+        box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
+    }
+    
+    .equipment-item .form-check {
+        min-height: 2.5rem;
+    }
+    
+    .equipment-item {
+        border-left: 3px solid transparent;
+    }
+    
+    .equipment-item.selected {
+        border-left-color: #0d6efd;
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+    
+    #equipmentTab {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-calendar-plus me-2"></i>New Event</h1>
+    <a href="{{ url_for('calendar.calendar') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Back to Calendar
+    </a>
+</div>
+
+<!-- Event Creation Tabs -->
+<ul class="nav nav-tabs mb-3" id="eventTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#detailsTab" type="button" role="tab">
+            <i class="fas fa-info-circle me-1"></i>Basic Details
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="template-tab" data-bs-toggle="tab" data-bs-target="#templateTab" type="button" role="tab">
+            <i class="fas fa-copy me-1"></i>Event Template
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="equipment-tab" data-bs-toggle="tab" data-bs-target="#equipmentTab" type="button" role="tab">
+            <i class="fas fa-dolly me-1"></i>Equipment
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventoryTab" type="button" role="tab">
+            <i class="fas fa-box me-1"></i>Elements & Kits
+        </button>
+    </li>
+</ul>
+
+<form action="{{ url_for('calendar.new_event') }}" method="post" id="newEventForm">
+    <!-- Hidden fields for template selection -->
+    <input type="hidden" name="template_id" id="template_id" value="">
+    
+    <div class="tab-content" id="eventTabsContent">
+        <!-- Basic Details Tab -->
+        <div class="tab-pane fade show active" id="detailsTab" role="tabpanel">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-calendar-day me-2"></i>Event Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="event_name" class="form-label">Event Title*</label>
+                            <input type="text" class="form-control" id="event_name" name="event_name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="client_id" class="form-label">Client*</label>
+                            <select class="form-select" id="client_id" name="client_id" required>
+                                <option value="">Select Client</option>
+                                {% for client in clients %}
+                                <option value="{{ client.id }}" data-color="{{ client.color }}">
+                                    {{ client.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="category_id" class="form-label">Event Category</label>
+                            <select class="form-select" id="category_id" name="category_id">
+                                <option value="">Select Category</option>
+                                {% for category in categories %}
+                                <option value="{{ category.id }}" data-color="{{ category.color }}">
+                                    {{ category.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <small class="form-text">Categorize your event for better organization</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="booked" selected>Booked</option>
+                                <option value="confirmed">Confirmed</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="event_date" class="form-label">Start Date*</label>
+                            <input type="date" class="form-control" id="event_date" name="event_date" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="end_date" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date">
+                            <small class="text-muted">For multi-day events</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="drop_off_time" class="form-label">Drop-off Time</label>
+                            <input type="time" class="form-control" id="drop_off_time" name="drop_off_time">
+                            <small class="text-muted">Equipment delivery</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="pickup_time" class="form-label">Pick-up Time</label>
+                            <input type="time" class="form-control" id="pickup_time" name="pickup_time">
+                            <small class="text-muted">Equipment collection</small>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="location_id" class="form-label">Location</label>
+                            <select class="form-select" id="location_id" name="location_id">
+                                <option value="">Select a location</option>
+                                {% for location in locations %}
+                                <option value="{{ location.id }}">{{ location.name }} - {{ location.address }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="mt-1">
+                                <a href="{{ url_for('locations.locations') }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-plus-circle me-1"></i>Manage Locations
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="event_location" class="form-label">Custom Location</label>
+                            <input type="text" class="form-control" id="event_location" name="event_location" placeholder="Or enter a custom address">
+                            <small class="text-muted">If not selecting from saved locations</small>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-3 border-light">
+                        <div class="card-header bg-light">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="is_recurring" name="is_recurring" value="1">
+                                <label class="form-check-label" for="is_recurring">
+                                    <strong>Recurring Event</strong>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="card-body" id="recurring-options" style="display: none;">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="recurrence_pattern" class="form-label">Recurrence Pattern</label>
+                                    <select class="form-select" id="recurrence_pattern" name="recurrence_pattern">
+                                        <option value="daily">Daily</option>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="monthly">Monthly</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="recurrence_end_date" class="form-label">End Recurrence</label>
+                                    <input type="date" class="form-control" id="recurrence_end_date" name="recurrence_end_date">
+                                </div>
+                            </div>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Recurring events will be created with the same details up to the end recurrence date.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Additional information about this event"></textarea>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="button" class="btn btn-primary next-tab" data-next="template-tab">
+                            <i class="fas fa-arrow-right me-1"></i>Continue to Templates
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Templates Tab -->
+        <div class="tab-pane fade" id="templateTab" role="tabpanel">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-copy me-2"></i>Event Templates</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">Select a template to pre-fill event settings and equipment (optional)</p>
+                    
+                    <div class="row g-3 mb-4">
+                        {% if templates %}
+                            {% for template in templates %}
+                            <div class="col-md-4">
+                                <div class="card h-100 template-card" data-template-id="{{ template.id }}">
+                                    <div class="card-header template-header" data-color="{{ template.color }}">
+                                        <h6 class="mb-0">{{ template.name }}</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="small">{{ template.description }}</p>
+                                        <div class="d-flex justify-content-between align-items-center mt-2">
+                                            <span class="badge bg-secondary">{{ template.category_name }}</span>
+                                            <button type="button" class="btn btn-sm btn-outline-primary select-template-btn" data-template-id="{{ template.id }}">
+                                                <i class="fas fa-check me-1"></i>Select
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="col-12">
+                                <div class="alert alert-info mb-0">
+                                    <i class="fas fa-info-circle me-2"></i>No templates available. You can create a new event from scratch.
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                        <button type="button" class="btn btn-secondary prev-tab" data-prev="details-tab">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Details
+                        </button>
+                        <button type="button" class="btn btn-primary next-tab" data-next="equipment-tab">
+                            <i class="fas fa-arrow-right me-1"></i>Continue to Equipment
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Equipment Tab -->
+        <div class="tab-pane fade" id="equipmentTab" role="tabpanel">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-dolly me-2"></i>Assign Equipment</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">Select the equipment and quantities needed for this event (optional)</p>
+                    
+                    {% if equipment %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50px;"></th>
+                                        <th>Equipment</th>
+                                        <th>Available</th>
+                                        <th style="width: 150px;">Quantity</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in equipment %}
+                                    <tr class="equipment-item" data-equipment-id="{{ item.id }}">
+                                        <td>
+                                            <div class="form-check">
+                                                <input class="form-check-input equipment-check" type="checkbox" id="equipment{{ item.id }}" name="equipment_ids" value="{{ item.id }}">
+                                                <label class="form-check-label" for="equipment{{ item.id }}"></label>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <label for="equipment{{ item.id }}" class="mb-0">{{ item.name }}</label>
+                                            {% if item.description %}
+                                            <small class="d-block text-muted">{{ item.description }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ item.quantity - item.assigned }}</td>
+                                        <td>
+                                            <input type="number" class="form-control equipment-quantity" name="equipment_qty{{ item.id }}" min="1" max="{{ item.quantity - item.assigned }}" value="1" disabled 
+                                                   data-equipment-id="{{ item.id }}">
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-info-circle me-2"></i>No equipment items available.
+                        </div>
+                    {% endif %}
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                        <button type="button" class="btn btn-secondary prev-tab" data-prev="template-tab">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Templates
+                        </button>
+                        <button type="button" class="btn btn-primary next-tab" data-next="inventory-tab">
+                            <i class="fas fa-arrow-right me-1"></i>Continue to Elements & Kits
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Elements & Kits Tab -->
+        <div class="tab-pane fade" id="inventoryTab" role="tabpanel">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-box me-2"></i>Assign Elements & Kits</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Tabs for Elements and Kits -->
+                    <ul class="nav nav-pills mb-3" id="inventorySubTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="elements-tab" data-bs-toggle="pill" 
+                                    data-bs-target="#elementsContent" type="button" role="tab">
+                                <i class="fas fa-box me-1"></i>Elements
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="kits-tab" data-bs-toggle="pill" 
+                                    data-bs-target="#kitsContent" type="button" role="tab">
+                                <i class="fas fa-boxes me-1"></i>Kits
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content" id="inventoryTabContent">
+                        <!-- Elements Tab -->
+                        <div class="tab-pane fade show active" id="elementsContent" role="tabpanel">
+                            <div class="mb-3">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    <input type="text" class="form-control" id="elementSearch" placeholder="Search elements...">
+                                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        Filter by Type
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item element-type-filter" href="#" data-type="all">All Types</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <!-- Element types would be populated dynamically -->
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 50px;"></th>
+                                            <th>Element</th>
+                                            <th>Type</th>
+                                            <th>Available</th>
+                                            <th style="width: 150px;">Quantity</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="elementsTableBody">
+                                        <!-- Elements would be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Kits Tab -->
+                        <div class="tab-pane fade" id="kitsContent" role="tabpanel">
+                            <div class="mb-3">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    <input type="text" class="form-control" id="kitSearch" placeholder="Search kits...">
+                                </div>
+                            </div>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 50px;"></th>
+                                            <th>Kit</th>
+                                            <th>Description</th>
+                                            <th style="width: 150px;">Quantity</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="kitsTableBody">
+                                        <!-- Kits would be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-between mt-4">
+                        <button type="button" class="btn btn-secondary prev-tab" data-prev="equipment-tab">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Equipment
+                        </button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save me-1"></i>Create Event
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load elements for inventory tab
+        loadElements();
+        
+        // Load kits for inventory tab
+        loadKits();
+        
+        // Set today's date as default
+        const today = new Date();
+        const formattedDate = today.toISOString().split('T')[0];
+        
+        const dateInput = document.getElementById('event_date');
+        if (dateInput) {
+            dateInput.value = formattedDate;
+        }
+        
+        // Element search functionality
+        const elementSearch = document.getElementById('elementSearch');
+        if (elementSearch) {
+            elementSearch.addEventListener('input', function() {
+                filterElements(this.value);
+            });
+        }
+        
+        // Kit search functionality
+        const kitSearch = document.getElementById('kitSearch');
+        if (kitSearch) {
+            kitSearch.addEventListener('input', function() {
+                filterKits(this.value);
+            });
+        }
+        
+        // Initialize element types filter
+        initElementTypesFilter();
+        
+        // Client color indicator
+        const clientSelect = document.getElementById('client_id');
+        if (clientSelect) {
+            clientSelect.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                const color = selectedOption.getAttribute('data-color');
+                
+                if (color) {
+                    this.style.borderLeft = `5px solid ${color}`;
+                } else {
+                    this.style.borderLeft = '';
+                }
+            });
+        }
+        
+        // Category color indicator
+        const categorySelect = document.getElementById('category_id');
+        if (categorySelect) {
+            categorySelect.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                const color = selectedOption.getAttribute('data-color');
+                
+                if (color) {
+                    this.style.borderLeft = `5px solid ${color}`;
+                } else {
+                    this.style.borderLeft = '';
+                }
+            });
+        }
+        
+        // Tab navigation
+        const nextTabBtns = document.querySelectorAll('.next-tab');
+        const prevTabBtns = document.querySelectorAll('.prev-tab');
+        
+        nextTabBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const nextTabId = this.getAttribute('data-next');
+                const nextTab = document.getElementById(nextTabId);
+                if (nextTab) {
+                    // Show equipment tab if it was hidden
+                    if (nextTabId === 'equipment-tab') {
+                        document.getElementById('equipmentTab').style.display = 'block';
+                    }
+                    
+                    // Bootstrap API to activate tab
+                    const tab = new bootstrap.Tab(nextTab);
+                    tab.show();
+                }
+            });
+        });
+        
+        prevTabBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const prevTabId = this.getAttribute('data-prev');
+                const prevTab = document.getElementById(prevTabId);
+                if (prevTab) {
+                    // Bootstrap API to activate tab
+                    const tab = new bootstrap.Tab(prevTab);
+                    tab.show();
+                }
+            });
+        });
+        
+        // Template selection
+        const templateCards = document.querySelectorAll('.template-card');
+        const templateIdInput = document.getElementById('template_id');
+        
+        templateCards.forEach(card => {
+            card.addEventListener('click', function() {
+                // Remove selected class from all cards
+                templateCards.forEach(c => c.classList.remove('selected'));
+                
+                // Add selected class to this card
+                this.classList.add('selected');
+                
+                // Set hidden input value
+                const templateId = this.getAttribute('data-template-id');
+                templateIdInput.value = templateId;
+            });
+        });
+        
+        // Equipment selection
+        const equipmentChecks = document.querySelectorAll('.equipment-check');
+        
+        equipmentChecks.forEach(check => {
+            check.addEventListener('change', function() {
+                const row = this.closest('.equipment-item');
+                const quantityInput = row.querySelector('.equipment-quantity');
+                
+                if (this.checked) {
+                    row.classList.add('selected');
+                    quantityInput.disabled = false;
+                } else {
+                    row.classList.remove('selected');
+                    quantityInput.disabled = true;
+                }
+            });
+        });
+        
+        // Apply template header colors
+        const templateHeaders = document.querySelectorAll('.template-header');
+        templateHeaders.forEach(header => {
+            const color = header.getAttribute('data-color');
+            if (color) {
+                header.style.backgroundColor = color;
+                header.style.color = 'white';
+            }
+        });
+        
+        // URL parameter handling for client selection
+        const urlParams = new URLSearchParams(window.location.search);
+        const clientIdParam = urlParams.get('client_id');
+        
+        if (clientIdParam && clientSelect) {
+            clientSelect.value = clientIdParam;
+            
+            // Trigger the change event to apply styling
+            const event = new Event('change');
+            clientSelect.dispatchEvent(event);
+        }
+        
+        // Helper function to load elements
+        function loadElements() {
+            fetch('/api/elements')
+                .then(response => response.json())
+                .then(data => {
+                    const elementsTableBody = document.getElementById('elementsTableBody');
+                    if (!elementsTableBody) return;
+                    
+                    // Clear existing content
+                    elementsTableBody.innerHTML = '';
+                    
+                    // If no elements
+                    if (data.length === 0) {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td colspan="5" class="text-center">No elements available</td>
+                        `;
+                        elementsTableBody.appendChild(row);
+                        return;
+                    }
+                    
+                    // Populate with elements
+                    data.forEach(element => {
+                        const row = document.createElement('tr');
+                        row.classList.add('element-item');
+                        row.setAttribute('data-element-id', element.element_id);
+                        row.setAttribute('data-type-id', element.type_id);
+                        row.setAttribute('data-type-name', element.type_name);
+                        
+                        row.innerHTML = `
+                            <td>
+                                <div class="form-check">
+                                    <input class="form-check-input element-check" type="checkbox" 
+                                           id="element${element.element_id}" name="element_ids" 
+                                           value="${element.element_id}">
+                                    <label class="form-check-label" for="element${element.element_id}"></label>
+                                </div>
+                            </td>
+                            <td>
+                                <label for="element${element.element_id}" class="mb-0">${element.item_description}</label>
+                                ${element.item_number ? `<small class="d-block text-muted">#${element.item_number}</small>` : ''}
+                            </td>
+                            <td>${element.type_name}</td>
+                            <td>${element.quantity}</td>
+                            <td>
+                                <input type="number" class="form-control element-quantity" 
+                                       name="element_qty${element.element_id}" min="1" 
+                                       max="${element.quantity}" value="1" disabled
+                                       data-element-id="${element.element_id}">
+                            </td>
+                        `;
+                        
+                        elementsTableBody.appendChild(row);
+                    });
+                    
+                    // Add event listeners to checkboxes
+                    document.querySelectorAll('.element-check').forEach(check => {
+                        check.addEventListener('change', function() {
+                            const row = this.closest('.element-item');
+                            const quantityInput = row.querySelector('.element-quantity');
+                            
+                            if (this.checked) {
+                                row.classList.add('selected');
+                                quantityInput.disabled = false;
+                            } else {
+                                row.classList.remove('selected');
+                                quantityInput.disabled = true;
+                            }
+                        });
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading elements:', error);
+                    // Handle error (e.g., show message to user)
+                });
+        }
+        
+        // Helper function to load kits
+        function loadKits() {
+            fetch('/api/kits')
+                .then(response => response.json())
+                .then(data => {
+                    const kitsTableBody = document.getElementById('kitsTableBody');
+                    if (!kitsTableBody) return;
+                    
+                    // Clear existing content
+                    kitsTableBody.innerHTML = '';
+                    
+                    // If no kits
+                    if (data.length === 0) {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td colspan="4" class="text-center">No kits available</td>
+                        `;
+                        kitsTableBody.appendChild(row);
+                        return;
+                    }
+                    
+                    // Populate with kits
+                    data.forEach(kit => {
+                        const row = document.createElement('tr');
+                        row.classList.add('kit-item');
+                        row.setAttribute('data-kit-id', kit.kit_id);
+                        
+                        row.innerHTML = `
+                            <td>
+                                <div class="form-check">
+                                    <input class="form-check-input kit-check" type="checkbox" 
+                                           id="kit${kit.kit_id}" name="kit_ids" 
+                                           value="${kit.kit_id}">
+                                    <label class="form-check-label" for="kit${kit.kit_id}"></label>
+                                </div>
+                            </td>
+                            <td>
+                                <label for="kit${kit.kit_id}" class="mb-0">${kit.kit_name}</label>
+                            </td>
+                            <td>${kit.description || ''}</td>
+                            <td>
+                                <input type="number" class="form-control kit-quantity" 
+                                       name="kit_qty${kit.kit_id}" min="1" value="1" disabled
+                                       data-kit-id="${kit.kit_id}">
+                            </td>
+                        `;
+                        
+                        kitsTableBody.appendChild(row);
+                    });
+                    
+                    // Add event listeners to checkboxes
+                    document.querySelectorAll('.kit-check').forEach(check => {
+                        check.addEventListener('change', function() {
+                            const row = this.closest('.kit-item');
+                            const quantityInput = row.querySelector('.kit-quantity');
+                            
+                            if (this.checked) {
+                                row.classList.add('selected');
+                                quantityInput.disabled = false;
+                            } else {
+                                row.classList.remove('selected');
+                                quantityInput.disabled = true;
+                            }
+                        });
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading kits:', error);
+                    // Handle error (e.g., show message to user)
+                });
+        }
+        
+        // Helper function to filter elements
+        function filterElements(searchText) {
+            const rows = document.querySelectorAll('.element-item');
+            const searchLower = searchText.toLowerCase();
+            
+            rows.forEach(row => {
+                const elementName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                const elementType = row.getAttribute('data-type-name').toLowerCase();
+                
+                if (elementName.includes(searchLower) || elementType.includes(searchLower)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+        
+        // Helper function to filter kits
+        function filterKits(searchText) {
+            const rows = document.querySelectorAll('.kit-item');
+            const searchLower = searchText.toLowerCase();
+            
+            rows.forEach(row => {
+                const kitName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                const kitDesc = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+                
+                if (kitName.includes(searchLower) || kitDesc.includes(searchLower)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+        
+        // Initialize element types filter dropdown
+        function initElementTypesFilter() {
+            fetch('/api/element-types')
+                .then(response => response.json())
+                .then(data => {
+                    const dropdown = document.querySelector('.element-type-filter').closest('.dropdown-menu');
+                    
+                    data.forEach(type => {
+                        const item = document.createElement('li');
+                        item.innerHTML = `<a class="dropdown-item element-type-filter" href="#" data-type="${type.type_id}">${type.type_name}</a>`;
+                        dropdown.appendChild(item);
+                    });
+                    
+                    // Add event listeners to filter items
+                    document.querySelectorAll('.element-type-filter').forEach(link => {
+                        link.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            const typeId = this.getAttribute('data-type');
+                            
+                            const rows = document.querySelectorAll('.element-item');
+                            rows.forEach(row => {
+                                if (typeId === 'all' || row.getAttribute('data-type-id') === typeId) {
+                                    row.style.display = '';
+                                } else {
+                                    row.style.display = 'none';
+                                }
+                            });
+                        });
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading element types:', error);
+                });
+        }
+    });
+</script>
+{% endblock %}

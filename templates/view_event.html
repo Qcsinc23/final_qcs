@@ -1,0 +1,209 @@
+{% extends 'layout.html' %}
+
+{% block title %}{{ event.event_name }} - QCS Event Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-calendar-check me-2"></i>Event Details</h1>
+    <div>
+        <a href="{{ url_for('calendar.edit_event', event_id=event.event_id) }}" class="btn btn-warning me-2">
+            <i class="fas fa-edit me-1"></i>Edit Event
+        </a>
+        <a href="{{ url_for('calendar.calendar') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-calendar-alt me-1"></i>Back to Calendar
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <!-- Event Details Card -->
+        <div class="card shadow mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center 
+                {% if event.status == 'completed' %}bg-success text-white
+                {% elif event.status == 'cancelled' %}bg-danger text-white
+                {% else %}bg-primary text-white{% endif %}">
+                <h5 class="mb-0">{{ event.event_name }}</h5>
+                <span class="badge bg-light text-dark">
+                    {{ event.status|capitalize }}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Client:</strong></p>
+                        <span class="badge client-badge" data-color="{{ event.client_color }}">
+                            {{ event.client_name }}
+                        </span>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Date:</strong></p>
+                        <p>{{ event.event_date }}</p>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Drop-off Time:</strong></p>
+                        <p>{% if event.drop_off_time %}{{ event.drop_off_time }}{% else %}Not specified{% endif %}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Pick-up Time:</strong></p>
+                        <p>{% if event.pickup_time %}{{ event.pickup_time }}{% else %}Not specified{% endif %}</p>
+                    </div>
+                </div>
+                
+            <div class="mb-3">
+                <p class="mb-1"><strong>Location:</strong></p>
+                <p>{% if event.event_location %}{{ event.event_location }}{% else %}Not specified{% endif %}</p>
+            </div>
+            
+            <!-- Equipment Section -->
+            <div class="mb-3">
+                <h5 class="border-bottom pb-2 mb-3">Assigned Equipment</h5>
+                <div class="table-responsive">
+                    {% if equipment_assignments %}
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Quantity</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in equipment_assignments %}
+                                <tr>
+                                    <td>{{ item.name }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>{% if item.description %}{{ item.description }}{% else %}-{% endif %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <p class="text-muted">No equipment assigned to this event.</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if event.status == 'booked' %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                This event is currently booked. Mark as completed after the event to generate an invoice.
+            </div>
+            <a href="{{ url_for('calendar.edit_event', event_id=event.event_id) }}" class="btn btn-success">
+                <i class="fas fa-check-circle me-1"></i>Mark as Completed
+            </a>
+            {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Invoice Details (if exists) -->
+        {% if invoice %}
+        <div class="card shadow">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Invoice Details</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Invoice #:</strong> {{ invoice.id }}</p>
+                <p><strong>Amount:</strong> ${{ "%.2f"|format(invoice.amount) }}</p>
+                <p><strong>Issue Date:</strong> {{ invoice.issue_date }}</p>
+                <p>
+                    <strong>Status:</strong> 
+                    <span class="badge {% if invoice.status == 'paid' %}bg-success{% else %}bg-warning{% endif %}">
+                        {{ invoice.status|capitalize }}
+                    </span>
+                </p>
+                
+                <div class="d-grid gap-2 mt-3">
+                    <a href="{{ url_for('calendar.view_invoice', invoice_id=invoice.id) }}" class="btn btn-outline-primary">
+                        <i class="fas fa-eye me-1"></i>View Invoice
+                    </a>
+                    <a href="{{ url_for('calendar.generate_invoice_pdf', invoice_id=invoice.id) }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-file-pdf me-1"></i>Download PDF
+                    </a>
+                    
+                    {% if invoice.status == 'unpaid' %}
+                    <form action="{{ url_for('calendar.mark_invoice_paid', invoice_id=invoice.id) }}" method="post">
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="fas fa-check-circle me-1"></i>Mark as Paid
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% elif event.status == 'completed' %}
+        <div class="card shadow">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>No Invoice</h5>
+            </div>
+            <div class="card-body">
+                <p>This event is marked as completed but does not have an invoice.</p>
+                <p>You may need to regenerate the invoice by editing and saving the event again.</p>
+                <div class="d-grid">
+                    <a href="{{ url_for('calendar.edit_event', event_id=event.event_id) }}" class="btn btn-primary">
+                        <i class="fas fa-sync me-1"></i>Update Event
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Delete Card -->
+        <div class="card shadow mt-4">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-trash-alt me-2"></i>Delete Event</h5>
+            </div>
+            <div class="card-body">
+                <p>This will permanently remove the event and any associated invoice.</p>
+                <button class="btn btn-danger w-100 delete-event-btn" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal">
+                    <i class="fas fa-trash-alt me-1"></i>Delete Event
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteConfirmModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the event <strong>"{{ event.event_name }}"</strong>?</p>
+                <p class="text-danger"><strong>This action cannot be undone.</strong></p>
+                {% if invoice %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    An invoice is associated with this event and will also be deleted.
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('calendar.delete_event', event_id=event.event_id) }}" method="post">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash-alt me-1"></i>Delete Event
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Apply client colors to badges
+        applyClientColors();
+    });
+</script>
+{% endblock %}

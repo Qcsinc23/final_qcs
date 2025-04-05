@@ -1,0 +1,180 @@
+{% extends 'layout.html' %}
+
+{% block title %}Kits - QCS Event Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-box-open me-2"></i>Kits</h1>
+    <div>
+        {% if 'admin' in session.role or 'staff' in session.role %}
+        <a href="{{ url_for('new_kit') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>New Kit
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h6 class="text-uppercase mb-1">Total Kits</h6>
+                        <h2 class="mb-0">{{ stats.total_kits }}</h2>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-box-open fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card bg-success text-white shadow">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h6 class="text-uppercase mb-1">Total Elements in Kits</h6>
+                        <h2 class="mb-0">{{ stats.total_kit_elements or 0 }}</h2>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-cubes fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card bg-info text-white shadow">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h6 class="text-uppercase mb-1">Avg. Elements per Kit</h6>
+                        <h2 class="mb-0">{{ stats.avg_elements_per_kit or 0 }}</h2>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calculator fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search and Filter Panel -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold">All Kits</h6>
+        <div class="input-group" style="max-width: 300px;">
+            <input type="text" id="searchInput" class="form-control" placeholder="Search kits...">
+            <button class="btn btn-outline-secondary" type="button" id="searchButton">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if kits %}
+        <div class="table-responsive">
+            <table class="table table-hover" id="kitsTable">
+                <thead>
+                    <tr>
+                        <th>Kit Name</th>
+                        <th>Description</th>
+                        <th>Elements</th>
+                        <th>Total Items</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for kit in kits %}
+                    <tr>
+                        <td>{{ kit.kit_name }}</td>
+                        <td>{{ kit.description or 'No description' }}</td>
+                        <td>{{ kit.element_count or 0 }}</td>
+                        <td>{{ kit.total_elements or 0 }}</td>
+                        <td>
+                            <a href="{{ url_for('view_kit', kit_id=kit.kit_id) }}" class="btn btn-sm btn-info">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            {% if 'admin' in session.role or 'staff' in session.role %}
+                            <a href="{{ url_for('edit_kit', kit_id=kit.kit_id) }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button type="button" class="btn btn-sm btn-danger" 
+                                    data-bs-toggle="modal" data-bs-target="#deleteModal{{ kit.kit_id }}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            
+                            <!-- Delete Modal -->
+                            <div class="modal fade" id="deleteModal{{ kit.kit_id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Delete Kit</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>Are you sure you want to delete <strong>{{ kit.kit_name }}</strong>?</p>
+                                            <p class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>This action cannot be undone. 
+                                               All elements in this kit will be removed from the kit but not deleted.</p>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <form action="{{ url_for('delete_kit', kit_id=kit.kit_id) }}" method="post">
+                                                <button type="submit" class="btn btn-danger">Delete Kit</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>No kits have been created yet.
+            {% if 'admin' in session.role or 'staff' in session.role %}
+            <a href="{{ url_for('new_kit') }}" class="alert-link">Create your first kit</a>.
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Simple search functionality
+        const searchInput = document.getElementById('searchInput');
+        const searchButton = document.getElementById('searchButton');
+        const kitsTable = document.getElementById('kitsTable');
+        
+        function performSearch() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const rows = kitsTable.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const kitName = row.cells[0].textContent.toLowerCase();
+                const description = row.cells[1].textContent.toLowerCase();
+                const hasMatch = kitName.includes(searchTerm) || description.includes(searchTerm);
+                
+                row.style.display = hasMatch ? '' : 'none';
+            });
+        }
+        
+        searchButton.addEventListener('click', performSearch);
+        searchInput.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+    });
+</script>
+{% endblock %}

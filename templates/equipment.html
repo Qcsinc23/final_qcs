@@ -1,0 +1,227 @@
+{% extends 'layout.html' %}
+
+{% block title %}Equipment Inventory - QCS Event Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-dolly me-2"></i>Equipment Inventory</h1>
+    <div>
+        {% if 'admin' in session.role or 'staff' in session.role %}
+        <a href="{{ url_for('new_equipment') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Add Equipment
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Total Equipment Items
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ equipment|length }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-boxes fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Available Equipment
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {% set available_count = 0 %}
+                            {% for item in equipment %}
+                                {% if item.quantity > item.assignment_count %}
+                                    {% set available_count = available_count + 1 %}
+                                {% endif %}
+                            {% endfor %}
+                            {{ available_count }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Fully Assigned
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {% set fully_assigned = 0 %}
+                            {% for item in equipment %}
+                                {% if item.quantity == item.assignment_count %}
+                                    {% set fully_assigned = fully_assigned + 1 %}
+                                {% endif %}
+                            {% endfor %}
+                            {{ fully_assigned }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Total Units
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {% set total_units = 0 %}
+                            {% for item in equipment %}
+                                {% set total_units = total_units + item.quantity %}
+                            {% endfor %}
+                            {{ total_units }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header bg-white py-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <h5 class="mb-0 text-gray-800">All Equipment</h5>
+            </div>
+            <div class="col-auto">
+                <form method="get" class="d-flex">
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="Search..." name="search" value="{{ request.args.get('search', '') }}">
+                        <button class="btn btn-outline-secondary" type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if equipment %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Equipment</th>
+                            <th>Total Quantity</th>
+                            <th>Available</th>
+                            <th>Assigned</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in equipment %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-dolly fa-lg text-secondary me-3"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">{{ item.name }}</h6>
+                                        {% if item.description %}
+                                        <small class="text-muted">{{ item.description }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ item.quantity }}</td>
+                            <td>{{ item.quantity - item.assignment_count }}</td>
+                            <td>{{ item.assignment_count }}</td>
+                            <td>
+                                {% if item.quantity == item.assignment_count %}
+                                <span class="badge bg-warning">Fully Assigned</span>
+                                {% elif item.quantity > item.assignment_count %}
+                                <span class="badge bg-success">Available</span>
+                                {% else %}
+                                <span class="badge bg-danger">Over-assigned</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if 'admin' in session.role or 'staff' in session.role %}
+                                <div class="btn-group">
+                                    <a href="{{ url_for('edit_equipment', equipment_id=item.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger {% if item.assignment_count > 0 %}disabled{% endif %}" 
+                                            data-bs-toggle="modal" data-bs-target="#deleteModal{{ item.id }}"
+                                            {% if item.assignment_count > 0 %}disabled{% endif %}>
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        
+                        <!-- Delete Modal -->
+                        <div class="modal fade" id="deleteModal{{ item.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Confirm Delete</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>Are you sure you want to delete the equipment <strong>{{ item.name }}</strong>?</p>
+                                        <p class="mb-0 text-danger">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>
+                                            This action cannot be undone.
+                                        </p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        <form action="{{ url_for('delete_equipment', equipment_id=item.id) }}" method="post">
+                                            <button type="submit" class="btn btn-danger">Delete Equipment</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>No equipment found. 
+                {% if 'admin' in session.role or 'staff' in session.role %}
+                <a href="{{ url_for('new_equipment') }}">Add your first equipment item</a>.
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

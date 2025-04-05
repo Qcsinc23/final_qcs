@@ -1,0 +1,253 @@
+{% extends 'layout.html' %}
+
+{% block title %}Edit Kit - QCS Event Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-edit me-2"></i>Edit Kit</h1>
+    <div>
+        <a href="{{ url_for('kits') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Kits
+        </a>
+        <a href="{{ url_for('view_kit', kit_id=kit.kit_id) }}" class="btn btn-outline-primary">
+            <i class="fas fa-eye me-1"></i>View Kit
+        </a>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Edit Kit: {{ kit.kit_name }}</h5>
+    </div>
+    <div class="card-body">
+        <!-- Hidden element to store kit elements data -->
+        <div id="kit-elements-data" style="display: none;" 
+             data-elements='[{% for elem in kit_elements %}{"elementId":{{ elem.element_id }},"elementName":"{{ elements | selectattr("element_id", "eq", elem.element_id) | map(attribute="item_description") | first | default("Element") }}","quantity":{{ elem.quantity }}}{% if not loop.last %},{% endif %}{% endfor %}]'>
+        </div>
+        
+        <form id="editKitForm" action="{{ url_for('edit_kit', kit_id=kit.kit_id) }}" method="post">
+            <div class="mb-3">
+                <label for="kit_name" class="form-label">Kit Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="kit_name" name="kit_name" required 
+                       value="{{ kit.kit_name }}" placeholder="Enter a name for this kit">
+            </div>
+            
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea class="form-control" id="description" name="description" rows="3" 
+                          placeholder="Describe what this kit contains or its purpose">{{ kit.description or '' }}</textarea>
+            </div>
+            
+            <hr class="my-4">
+            
+            <h5 class="mb-3">Elements in Kit</h5>
+            
+            <div class="alert alert-info mb-3">
+                <i class="fas fa-info-circle me-2"></i>Update elements in this kit. Search to find and add more elements or modify quantities.
+            </div>
+            
+            <div class="mb-3">
+                <div class="input-group">
+                    <input type="text" id="elementSearch" class="form-control" placeholder="Search elements...">
+                    <button class="btn btn-outline-secondary" type="button" id="searchButton">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="table-responsive mb-3">
+                <table class="table table-bordered" id="elementsTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Type</th>
+                            <th>Element</th>
+                            <th style="width: 150px;">Quantity</th>
+                            <th style="width: 80px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for element in elements %}
+                        <tr data-element-id="{{ element.element_id }}" data-element-name="{{ element.item_description }}">
+                            <td>{{ element.type_name }}</td>
+                            <td>{{ element.item_description }}</td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm quantity-input" 
+                                       min="0" value="0" data-element-id="{{ element.element_id }}">
+                            </td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-primary add-element" data-element-id="{{ element.element_id }}">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <h5 class="mb-3">Selected Elements</h5>
+            <div class="table-responsive mb-4">
+                <table class="table" id="selectedElementsTable">
+                    <thead>
+                        <tr>
+                            <th>Element</th>
+                            <th style="width: 150px;">Quantity</th>
+                            <th style="width: 80px;">Remove</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Selected elements will be populated here dynamically -->
+                    </tbody>
+                </table>
+                <div id="noElementsMessage" class="alert alert-warning">
+                    <i class="fas fa-exclamation-circle me-2"></i>No elements selected. Please add at least one element to the kit.
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-end mt-3">
+                <a href="{{ url_for('view_kit', kit_id=kit.kit_id) }}" class="btn btn-outline-secondary me-2">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i>Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const elementsTable = document.getElementById('elementsTable');
+        const selectedElementsTable = document.getElementById('selectedElementsTable');
+        const selectedElementsTbody = selectedElementsTable.querySelector('tbody');
+        const elementSearch = document.getElementById('elementSearch');
+        const searchButton = document.getElementById('searchButton');
+        const noElementsMessage = document.getElementById('noElementsMessage');
+        const editKitForm = document.getElementById('editKitForm');
+        
+        // Get kit elements from data attribute
+        const kitElementsData = document.getElementById('kit-elements-data');
+        const kitElements = kitElementsData ? JSON.parse(kitElementsData.dataset.elements || '[]') : [];
+        
+        // Filter elements table based on search
+        function filterElements() {
+            const searchTerm = elementSearch.value.toLowerCase();
+            const rows = elementsTable.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const type = row.cells[0].textContent.toLowerCase();
+                const name = row.cells[1].textContent.toLowerCase();
+                const hasMatch = type.includes(searchTerm) || name.includes(searchTerm);
+                
+                row.style.display = hasMatch ? '' : 'none';
+            });
+        }
+        
+        // Add element to selected elements
+        function addElement(elementId, elementName, quantity) {
+            // Check if element is already in selected list
+            const existingRow = selectedElementsTbody.querySelector(`tr[data-element-id="${elementId}"]`);
+            
+            if (existingRow) {
+                // Update quantity if already added
+                const quantityInput = existingRow.querySelector('input[name="quantity[]"]');
+                quantityInput.value = quantity;
+            } else {
+                // Create new row for selected elements table
+                const newRow = document.createElement('tr');
+                newRow.dataset.elementId = elementId;
+                
+                newRow.innerHTML = `
+                    <td>${elementName}</td>
+                    <td>
+                        <input type="number" name="quantity[]" class="form-control" 
+                               min="1" value="${quantity}" required>
+                        <input type="hidden" name="element_id[]" value="${elementId}">
+                    </td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-danger remove-element">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                
+                selectedElementsTbody.appendChild(newRow);
+                
+                // Add event listener to remove button
+                const removeButton = newRow.querySelector('.remove-element');
+                removeButton.addEventListener('click', function() {
+                    newRow.remove();
+                    updateNoElementsMessage();
+                    
+                    // Reset quantity in the elements table
+                    const elementsTableRow = elementsTable.querySelector(`tr[data-element-id="${elementId}"]`);
+                    if (elementsTableRow) {
+                        const quantityInput = elementsTableRow.querySelector('.quantity-input');
+                        quantityInput.value = 0;
+                    }
+                });
+            }
+            
+            updateNoElementsMessage();
+        }
+        
+        // Update visibility of "no elements" message
+        function updateNoElementsMessage() {
+            const hasElements = selectedElementsTbody.querySelectorAll('tr').length > 0;
+            noElementsMessage.style.display = hasElements ? 'none' : 'block';
+        }
+        
+        // Initialize existing kit elements
+        kitElements.forEach(elem => {
+            addElement(elem.elementId, elem.elementName, elem.quantity);
+            
+            // Update quantity in main table
+            const elementsTableRow = elementsTable.querySelector(`tr[data-element-id="${elem.elementId}"]`);
+            if (elementsTableRow) {
+                const quantityInput = elementsTableRow.querySelector('.quantity-input');
+                quantityInput.value = elem.quantity;
+            }
+        });
+        
+        // Add click handlers to "Add" buttons
+        const addButtons = document.querySelectorAll('.add-element');
+        addButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const elementId = this.dataset.elementId;
+                const row = this.closest('tr');
+                const elementName = row.dataset.elementName;
+                const quantityInput = row.querySelector('.quantity-input');
+                const quantity = parseInt(quantityInput.value);
+                
+                if (quantity > 0) {
+                    addElement(elementId, elementName, quantity);
+                }
+            });
+        });
+        
+        // Allow enter key for search
+        elementSearch.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                filterElements();
+            }
+        });
+        
+        // Search button click handler
+        searchButton.addEventListener('click', filterElements);
+        
+        // Validate form on submit
+        editKitForm.addEventListener('submit', function(e) {
+            const hasElements = selectedElementsTbody.querySelectorAll('tr').length > 0;
+            
+            if (!hasElements) {
+                e.preventDefault();
+                alert('Please add at least one element to the kit.');
+            }
+        });
+        
+        // Initialize
+        updateNoElementsMessage();
+    });
+</script>
+{% endblock %}

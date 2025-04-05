@@ -1,0 +1,448 @@
+{% extends 'layout.html' %}
+
+{% block title %}Calendar - QCS Event Management{% endblock %}
+
+{% block head %}
+    {# Link to the main stylesheet #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {# Toastify CSS for notifications #}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    {# Popper.js for tooltip positioning (add this if not already globally included) #}
+    <script src="https://unpkg.com/@popperjs/core@2" defer></script>
+    {# Removed inline styles - moved to static/style.css #}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h1 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Event Calendar</h1>
+    <div class="d-flex flex-wrap gap-2">
+        <!-- Filters Toggle Button -->
+         <button class="btn btn-outline-secondary" id="filtersToggle">
+            <i class="fas fa-filter me-1"></i> Filters
+        </button>
+        <!-- Action Buttons -->
+        <div class="btn-group">
+            <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-plus me-1"></i> New Event
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                 <li><a class="dropdown-item" href="{{ url_for('calendar.new_event') }}">
+                    <i class="fas fa-calendar-plus fa-fw me-2 text-muted"></i>Create Full Event</a>
+                 </li>
+                 <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#quickEventModal">
+                    <i class="fas fa-bolt fa-fw me-2 text-muted"></i>Quick Add</a>
+                 </li>
+            </ul>
+        </div>
+        <div class="btn-group">
+             <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                 <i class="fas fa-download me-1"></i>Export / Subscribe
+             </button>
+             <ul class="dropdown-menu dropdown-menu-end">
+                {% if export_calendar_enabled %}
+                <li><a class="dropdown-item" href="{{ url_for('calendar.export_calendar', format='ics') }}">
+                    <i class="fas fa-file-export fa-fw me-2 text-muted"></i>Export ICS File</a>
+                </li>
+                {% else %}
+                <li><a class="dropdown-item disabled" href="#" title="Setup Required">
+                    <i class="fas fa-file-export fa-fw me-2 text-muted"></i>Export ICS File</a>
+                </li>
+                {% endif %}
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#icsSubscribeModal">
+                    <i class="fas fa-rss fa-fw me-2 text-muted"></i>Get Subscription URL</a>
+                </li>
+             </ul>
+        </div>
+        <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#importCalendarModal">
+            <i class="fas fa-upload me-1"></i>Import
+        </button>
+         <button class="btn btn-outline-secondary" id="printCalendarBtn">
+            <i class="fas fa-print me-1"></i>Print
+        </button>
+    </div>
+</div>
+
+<!-- Calendar Area -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body p-3 position-relative">
+        <div id="calendar" class="calendar-container">
+            <!-- FullCalendar will render here -->
+        </div>
+        <!-- Loading Indicator Overlay -->
+        <div id="calendarLoading">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 mb-0">Loading events...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Panel (Separate Sidebar) -->
+<div class="filters-panel" id="filtersPanel">
+    <div class="filters-header">
+        <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filters</h5>
+        <button type="button" class="btn-close btn-sm" id="closeFilters" aria-label="Close"></button>
+    </div>
+    <div class="filters-content">
+        <!-- Category Filters -->
+        <div class="mb-3">
+            <label class="form-label fw-bold">Categories</label>
+            <div>
+                {% for category in categories %}
+                <div class="form-check mb-2">
+                    <input class="form-check-input category-filter" type="checkbox" value="{{ category.id }}" id="category{{ category.id }}" checked>
+                    <label class="form-check-label" for="category{{ category.id }}">
+                        <span class="badge me-1 rounded-pill" style="background-color: {{ category.color|default('#6c757d') }}"> </span>
+                        {{ category.name }}
+                    </label>
+                </div>
+                {% else %}
+                 <p class="text-muted small">No categories defined.</p>
+                {% endfor %}
+            </div>
+        </div>
+        <hr class="my-3">
+        <!-- Status Filters -->
+        <div class="mb-3">
+            <label class="form-label fw-bold">Status</label>
+             <div>
+                 <div class="form-check mb-2">
+                    <input class="form-check-input status-filter" type="checkbox" value="booked" id="statusBooked" checked>
+                    <label class="form-check-label" for="statusBooked">
+                        <span class="badge bg-primary">Booked</span>
+                    </label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input status-filter" type="checkbox" value="confirmed" id="statusConfirmed" checked>
+                    <label class="form-check-label" for="statusConfirmed">
+                        <span class="badge bg-success">Confirmed</span>
+                    </label>
+                </div>
+                 <div class="form-check mb-2">
+                    <input class="form-check-input status-filter" type="checkbox" value="in_progress" id="statusInProgress" checked>
+                    <label class="form-check-label" for="statusInProgress">
+                        <span class="badge bg-warning text-dark">In Progress</span>
+                    </label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input status-filter" type="checkbox" value="completed" id="statusCompleted" checked>
+                    <label class="form-check-label" for="statusCompleted">
+                        <span class="badge bg-secondary">Completed</span>
+                    </label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input status-filter" type="checkbox" value="cancelled" id="statusCancelled">
+                    <label class="form-check-label" for="statusCancelled">
+                        <span class="badge bg-danger">Cancelled</span>
+                    </label>
+                </div>
+             </div>
+        </div>
+        <hr class="my-3">
+        <!-- Client Filter -->
+        <div class="mb-3">
+            <label for="clientFilter" class="form-label fw-bold">Client</label>
+            <select class="form-select form-select-sm client-filter" id="clientFilter">
+                <option value="all" selected>All Clients</option>
+                {% for client in clients %}
+                <option value="{{ client.id }}">{{ client.name }}</option>
+                {% else %}
+                 <option value="all" disabled>No clients available</option>
+                {% endfor %}
+            </select>
+        </div>
+        <hr class="my-3">
+        <!-- Conflicts Only Filter -->
+        <div class="mb-3">
+             <label class="form-label fw-bold">Options</label>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="showConflictsOnly">
+                <label class="form-check-label" for="showConflictsOnly">
+                    Show Conflicts Only
+                </label>
+            </div>
+        </div>
+    </div>
+</div><!-- End Filters Panel -->
+
+<!-- Event Details Sidebar (Separate Sidebar) -->
+<div class="event-details-sidebar" id="eventDetailsSidebar">
+    <div class="event-details-header">
+        <h5 id="eventDetailsTitle">Event Details</h5>
+        <button type="button" class="btn-close btn-sm" id="closeEventDetails" aria-label="Close"></button>
+    </div>
+    <div class="event-details-content"> {/* Changed class */}
+        <div id="eventDetails">
+            <p class="text-muted fst-italic p-3">Click an event on the calendar to view its details here.</p>
+        </div>
+        {# Action buttons will be added dynamically by JS #}
+    </div>
+    {# Removed static action buttons div #}
+</div><!-- End Event Details Sidebar -->
+
+{# Removed old conflict alert div #}
+
+<!-- Modals (Directly Embedded) -->
+
+<!-- Quick Event Modal -->
+<div class="modal fade" id="quickEventModal" tabindex="-1" aria-labelledby="quickEventModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="quickEventModalLabel">Quick Add Event</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="quickEventForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="quickEventTitle" class="form-label">Event Title*</label>
+                        <input type="text" class="form-control" id="quickEventTitle" name="event_name" required>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="quickEventDate" class="form-label">Date*</label>
+                            <input type="date" class="form-control" id="quickEventDate" name="event_date" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="quickEventClient" class="form-label">Client</label>
+                            <select class="form-select" id="quickEventClient" name="client_id">
+                                <option value="">Select Client</option>
+                                {% for client in clients %}
+                                <option value="{{ client.id }}">{{ client.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="quickEventCategory" class="form-label">Category</label>
+                            <select class="form-select" id="quickEventCategory" name="category_id">
+                                <option value="">Select Category</option>
+                                {% for category in categories %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="quickEventLocation" class="form-label">Location</label>
+                            <select class="form-select" id="quickEventLocation" name="location_id">
+                                <option value="">Select Location</option>
+                                {% for location in locations %}
+                                <option value="{{ location.id }}">{{ location.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                     <div class="mb-3">
+                        <label for="quickEventDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="quickEventDescription" name="description" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="quickEventSubmit">
+                        <i class="fas fa-plus me-1"></i>Create Event
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Move Event Modal -->
+<div class="modal fade" id="moveEventModal" tabindex="-1" aria-labelledby="moveEventModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="moveEventModalLabel">Move Event</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="moveEventForm">
+                <input type="hidden" id="moveEventId" name="event_id">
+                <div class="modal-body">
+                    <p>Update date and time for: <strong id="moveEventTitle"></strong></p>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="moveEventStartDate" class="form-label">Start Date*</label>
+                            <input type="date" class="form-control" id="moveEventStartDate" name="start_date" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="moveEventEndDate" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="moveEventEndDate" name="end_date">
+                            <small class="text-muted">Leave blank for single-day event</small>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="moveEventStartTime" class="form-label">Start Time</label>
+                            <input type="time" class="form-control" id="moveEventStartTime" name="start_time">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="moveEventEndTime" class="form-label">End Time</label>
+                            <input type="time" class="form-control" id="moveEventEndTime" name="end_time">
+                        </div>
+                    </div>
+
+                    <div id="moveEventRecurringSection" style="display: none;">
+                        <hr>
+                        <p class="fw-bold">This is a recurring event. Apply changes to:</p>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="recurrence_edit" id="editSingleEvent" value="single" checked>
+                            <label class="form-check-label" for="editSingleEvent">
+                                Only this occurrence
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="recurrence_edit" id="editFutureEvents" value="future">
+                            <label class="form-check-label" for="editFutureEvents">
+                                This and all future occurrences
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="recurrence_edit" id="editAllEvents" value="all">
+                            <label class="form-check-label" for="editAllEvents">
+                                All occurrences in the series
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="moveEventSubmit">
+                        <i class="fas fa-check me-1"></i>Update Event
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ICS Subscribe Modal -->
+<div class="modal fade" id="icsSubscribeModal" tabindex="-1" aria-labelledby="icsSubscribeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="icsSubscribeModalLabel">Calendar Subscription</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Use this URL to subscribe to this calendar from Outlook, Google Calendar, or any other calendar application that supports ICS feeds:</p>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" id="icsSubscribeUrl" value="{{ ics_subscribe_url }}" readonly>
+                    <button class="btn btn-outline-secondary" type="button" id="copyIcsUrlBtn" title="Copy URL">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+                <div class="alert alert-info d-flex align-items-center">
+                    <i class="fas fa-info-circle fa-fw me-2"></i>
+                    <div>The calendar will automatically update in your application when events are added or modified.</div>
+                </div>
+                <h6>Quick Subscribe Links:</h6>
+                <div class="d-grid gap-2">
+                    <a href="{{ google_calendar_url }}" class="btn btn-outline-danger" target="_blank">
+                        <i class="fab fa-google me-1"></i>Add to Google Calendar
+                    </a>
+                    <a href="{{ outlook_calendar_url }}" class="btn btn-outline-primary" target="_blank">
+                        <i class="fab fa-microsoft me-1"></i>Add to Outlook
+                    </a>
+                     <a href="{{ apple_calendar_url }}" class="btn btn-outline-dark" target="_blank">
+                        <i class="fab fa-apple me-1"></i>Add to Apple Calendar
+                    </a>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Calendar Modal -->
+<div class="modal fade" id="importCalendarModal" tabindex="-1" aria-labelledby="importCalendarModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importCalendarModalLabel">Import Calendar</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('calendar.import_calendar') }}" method="post" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="importType" class="form-label">Import Type</label>
+                        <select class="form-select" id="importType" name="import_type">
+                            <option value="ics_file" selected>Upload ICS File</option>
+                            <option value="ics_url">Import from URL</option>
+                        </select>
+                    </div>
+
+                    <div id="icsFileSection">
+                        <div class="mb-3">
+                            <label for="icsFile" class="form-label">ICS File</label>
+                            <input class="form-control" type="file" id="icsFile" name="ics_file" accept=".ics">
+                        </div>
+                    </div>
+
+                    <div id="icsUrlSection" style="display: none;">
+                        <div class="mb-3">
+                            <label for="icsUrl" class="form-label">ICS Feed URL</label>
+                            <input type="url" class="form-control" id="icsUrl" name="ics_url" placeholder="https://example.com/calendar.ics">
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="autoSync" name="auto_sync" value="1">
+                            <label class="form-check-label" for="autoSync">
+                                Automatically sync this feed daily
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="importCategory" class="form-label">Assign to Category (Optional)</label>
+                        <select class="form-select" id="importCategory" name="category_id">
+                            <option value="">None</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                     <div class="mb-3">
+                        <label for="importClient" class="form-label">Assign to Client (Optional)</label>
+                        <select class="form-select" id="importClient" name="client_id">
+                            <option value="">None</option>
+                            {% for client in clients %}
+                            <option value="{{ client.id }}">{{ client.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-file-import me-1"></i>Import Events
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- Load FullCalendar Core and Plugins -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+{# <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/interaction@6.1.11/index.global.min.js"></script> #} {# Interaction is part of global #}
+{# <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.11/index.global.min.js"></script> #} {# Part of global #}
+{# <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.11/index.global.min.js"></script> #} {# Part of global #}
+{# <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/list@6.1.11/index.global.min.js"></script> #} {# Part of global #}
+
+<!-- Toastify JS -->
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+<!-- Your calendar.js -->
+<script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
+
+{% endblock %}

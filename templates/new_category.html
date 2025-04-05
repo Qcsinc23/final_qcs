@@ -1,0 +1,142 @@
+{% extends 'layout.html' %}
+
+{% block title %}New Category - QCS Event Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-tag me-2"></i>New Category</h1>
+    <a href="{{ url_for('categories') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Back to Categories
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Create New Category</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" id="newCategoryForm">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Category Name*</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                        <div class="form-text">Give your category a descriptive name</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="color" class="form-label">Color*</label>
+                        <div class="input-group">
+                            <span class="input-group-text color-preview" id="colorPreview"></span>
+                            <input type="color" class="form-control form-control-color" id="color" name="color" value="#3788d8" required>
+                            <input type="text" class="form-control" id="colorHex" placeholder="#3788d8">
+                        </div>
+                        <div class="form-text">Choose a color for this category</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        <div class="form-text">Provide additional information about this category (optional)</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('categories') }}" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Create Category
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Tips</h5>
+            </div>
+            <div class="card-body">
+                <h6 class="fw-bold">Category Best Practices</h6>
+                <ul class="mb-3">
+                    <li>Use clear, descriptive names for categories</li>
+                    <li>Choose contrasting colors that are easy to distinguish</li>
+                    <li>Use categories consistently across events</li>
+                    <li>Categories can represent event types, departments, or other classifications</li>
+                </ul>
+                
+                <h6 class="fw-bold">Examples</h6>
+                <div class="mb-1">
+                    <span class="badge rounded-pill" style="background-color: #dc3545;">Corporate</span>
+                    <span class="badge rounded-pill" style="background-color: #28a745;">Wedding</span>
+                    <span class="badge rounded-pill" style="background-color: #17a2b8;">Conference</span>
+                </div>
+                <div>
+                    <span class="badge rounded-pill" style="background-color: #ffc107; color: #000;">Party</span>
+                    <span class="badge rounded-pill" style="background-color: #6610f2;">Charity</span>
+                    <span class="badge rounded-pill" style="background-color: #fd7e14;">Festival</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const colorInput = document.getElementById('color');
+        const colorHex = document.getElementById('colorHex');
+        const colorPreview = document.getElementById('colorPreview');
+        
+        // Initialize
+        colorHex.value = colorInput.value;
+        colorPreview.style.backgroundColor = colorInput.value;
+        
+        // Update preview when color input changes
+        colorInput.addEventListener('input', function() {
+            colorHex.value = this.value;
+            colorPreview.style.backgroundColor = this.value;
+        });
+        
+        // Update color input when hex input changes
+        colorHex.addEventListener('input', function() {
+            // Validate hex color
+            const hexRegex = /^#[0-9A-F]{6}$/i;
+            if (hexRegex.test(this.value)) {
+                colorInput.value = this.value;
+                colorPreview.style.backgroundColor = this.value;
+            }
+        });
+        
+        // Form validation
+        const form = document.getElementById('newCategoryForm');
+        form.addEventListener('submit', function(e) {
+            let valid = true;
+            
+            // Validate name
+            const name = document.getElementById('name');
+            if (!name.value.trim()) {
+                valid = false;
+                name.classList.add('is-invalid');
+            } else {
+                name.classList.remove('is-invalid');
+            }
+            
+            // Validate color
+            const color = document.getElementById('color');
+            const hexRegex = /^#[0-9A-F]{6}$/i;
+            if (!hexRegex.test(color.value)) {
+                valid = false;
+                color.classList.add('is-invalid');
+            } else {
+                color.classList.remove('is-invalid');
+            }
+            
+            if (!valid) {
+                e.preventDefault();
+            }
+        });
+    });
+</script>
+{% endblock %}

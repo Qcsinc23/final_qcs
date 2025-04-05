@@ -1,0 +1,150 @@
+{% extends 'layout.html' %}
+
+{% block title %}Edit Category - QCS Event Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-edit me-2"></i>Edit Category</h1>
+    <a href="{{ url_for('categories') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Back to Categories
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-edit me-2"></i>Edit "{{ category.name }}"</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" id="editCategoryForm">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Category Name*</label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ category.name }}" required>
+                        <div class="form-text">Give your category a descriptive name</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="color" class="form-label">Color*</label>
+                        <div class="input-group">
+                            <span class="input-group-text color-preview" id="colorPreview"></span>
+                            <input type="color" class="form-control form-control-color" id="color" name="color" value="{{ category.color }}" required>
+                            <input type="text" class="form-control" id="colorHex" placeholder="#3788d8">
+                        </div>
+                        <div class="form-text">Choose a color for this category</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3">{{ category.description }}</textarea>
+                        <div class="form-text">Provide additional information about this category (optional)</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('categories') }}" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Update Category
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Category Usage</h5>
+            </div>
+            <div class="card-body">
+                <p>This category is currently used by:</p>
+                <div class="d-flex align-items-center mb-3">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-calendar-alt fa-2x text-secondary me-3"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-0 fw-bold">Events</h6>
+                        <span class="badge bg-secondary">{{ event_count|default(0) }} events</span>
+                    </div>
+                </div>
+                
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-copy fa-2x text-secondary me-3"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-0 fw-bold">Templates</h6>
+                        <span class="badge bg-secondary">{{ template_count|default(0) }} templates</span>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="alert alert-warning mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Changes to this category will affect all associated events and templates.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const colorInput = document.getElementById('color');
+        const colorHex = document.getElementById('colorHex');
+        const colorPreview = document.getElementById('colorPreview');
+        
+        // Initialize
+        colorHex.value = colorInput.value;
+        colorPreview.style.backgroundColor = colorInput.value;
+        
+        // Update preview when color input changes
+        colorInput.addEventListener('input', function() {
+            colorHex.value = this.value;
+            colorPreview.style.backgroundColor = this.value;
+        });
+        
+        // Update color input when hex input changes
+        colorHex.addEventListener('input', function() {
+            // Validate hex color
+            const hexRegex = /^#[0-9A-F]{6}$/i;
+            if (hexRegex.test(this.value)) {
+                colorInput.value = this.value;
+                colorPreview.style.backgroundColor = this.value;
+            }
+        });
+        
+        // Form validation
+        const form = document.getElementById('editCategoryForm');
+        form.addEventListener('submit', function(e) {
+            let valid = true;
+            
+            // Validate name
+            const name = document.getElementById('name');
+            if (!name.value.trim()) {
+                valid = false;
+                name.classList.add('is-invalid');
+            } else {
+                name.classList.remove('is-invalid');
+            }
+            
+            // Validate color
+            const color = document.getElementById('color');
+            const hexRegex = /^#[0-9A-F]{6}$/i;
+            if (!hexRegex.test(color.value)) {
+                valid = false;
+                color.classList.add('is-invalid');
+            } else {
+                color.classList.remove('is-invalid');
+            }
+            
+            if (!valid) {
+                e.preventDefault();
+            }
+        });
+    });
+</script>
+{% endblock %}

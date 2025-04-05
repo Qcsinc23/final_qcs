@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}QCS Event Management{% endblock %}</title>
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body class="modern-ui">
+    <!-- Top Bar/Header -->
+    <header class="top-bar">
+        <div class="top-bar-left">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <a class="app-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-calendar-check"></i>
+                <span>QCS Event</span>
+            </a>
+        </div>
+        
+        <div class="top-bar-center">
+            {% if session.user_id %}
+            <div class="search-container">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" class="global-search" placeholder="Search..." id="globalSearch">
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="top-bar-right">
+            {% if session.user_id %}
+            <div class="top-bar-actions">
+                <button class="btn-icon notifications-toggle" id="notificationsToggle">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge notification-badge">3</span>
+                </button>
+                
+                <div class="theme-toggle-wrapper">
+                    <button class="btn-icon theme-toggle" id="themeToggle">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+                
+                <div class="user-profile dropdown">
+                    <a class="user-profile-toggle" href="#" role="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div class="user-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="user-info d-none d-md-block">
+                            <span class="user-name">{{ session.username }}</span>
+                            {% if session.role == 'admin' %}
+                            <span class="user-role badge bg-danger">Admin</span>
+                            {% elif session.role == 'staff' %}
+                            <span class="user-role badge bg-success">Staff</span>
+                            {% else %}
+                            <span class="user-role badge bg-info">Viewer</span>
+                            {% endif %}
+                        </div>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('profile') }}">
+                                <i class="fas fa-user me-2"></i>My Profile
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('logout') }}">
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Side Navigation -->
+    {% if session.user_id %}
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-app-brand">
+                <i class="fas fa-calendar-check"></i>
+                <span>QCS Event Management</span>
+            </div>
+            <button class="sidebar-close d-md-none" id="sidebarClose">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="sidebar-content">
+            <ul class="sidebar-nav">
+                <li class="sidebar-item">
+                    <a class="sidebar-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">
+                        <i class="fas fa-home"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                
+                <li class="sidebar-item">
+                    <a class="sidebar-link {% if request.endpoint == 'calendar.calendar' %}active{% endif %}" href="{{ url_for('calendar.calendar') }}">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Calendar</span>
+                    </a>
+                </li>
+                
+                <li class="sidebar-item">
+                <a class="sidebar-link {% if request.endpoint == 'calendar.invoices' %}active{% endif %}" href="{{ url_for('calendar.invoices') }}">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        <span>Invoices</span>
+                    </a>
+                </li>
+                
+                <li class="sidebar-item sidebar-dropdown">
+                    <a class="sidebar-link dropdown-toggle {% if request.endpoint in ['equipment', 'element_types', 'elements', 'kits'] %}active{% endif %}" href="#" data-bs-toggle="collapse" data-bs-target="#inventorySubmenu">
+                        <i class="fas fa-boxes"></i>
+                        <span>Inventory</span>
+                        <i class="dropdown-icon fas fa-chevron-right"></i>
+                    </a>
+                    <ul class="sidebar-submenu collapse {% if request.endpoint in ['equipment', 'element_types', 'elements', 'kits'] %}show{% endif %}" id="inventorySubmenu">
+                        <li>
+                            <a class="sidebar-sublink {% if request.endpoint == 'equipment' %}active{% endif %}" href="{{ url_for('equipment') }}">
+                                <i class="fas fa-dolly"></i>
+                                <span>Equipment</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="sidebar-sublink {% if request.endpoint == 'element_types' %}active{% endif %}" href="{{ url_for('element_types') }}">
+                                <i class="fas fa-tags"></i>
+                                <span>Element Types</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="sidebar-sublink {% if request.endpoint == 'elements' %}active{% endif %}" href="{{ url_for('elements') }}">
+                                <i class="fas fa-cube"></i>
+                                <span>Elements</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="sidebar-sublink {% if request.endpoint == 'kits' %}active{% endif %}" href="{{ url_for('kits') }}">
+                                <i class="fas fa-box-open"></i>
+                                <span>Kits</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                
+                <li class="sidebar-item">
+                    <a class="sidebar-link {% if request.endpoint == 'clients' %}active{% endif %}" href="{{ url_for('clients') }}">
+                        <i class="fas fa-user-tie"></i>
+                        <span>Clients</span>
+                    </a>
+                </li>
+                
+                {% if session.role == 'admin' %}
+                <li class="sidebar-section">
+                    <span>Administration</span>
+                </li>
+                <li class="sidebar-item">
+                    <a class="sidebar-link {% if request.endpoint == 'users' %}active{% endif %}" href="{{ url_for('users') }}">
+                        <i class="fas fa-users-cog"></i>
+                        <span>User Management</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+        
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="user-details">
+                    <div class="user-name">{{ session.username }}</div>
+                    <div class="user-role">
+                        {% if session.role == 'admin' %}
+                        <span class="badge bg-danger">Admin</span>
+                        {% elif session.role == 'staff' %}
+                        <span class="badge bg-success">Staff</span>
+                        {% else %}
+                        <span class="badge bg-info">Viewer</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Notifications Sidebar -->
+    <div class="notifications-panel" id="notificationsPanel">
+        <div class="notifications-header">
+            <h5>Notifications</h5>
+            <button class="close-notifications" id="closeNotifications">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="notifications-content">
+            <div class="notification-item unread">
+                <div class="notification-icon bg-primary">
+                    <i class="fas fa-calendar-plus"></i>
+                </div>
+                <div class="notification-details">
+                    <div class="notification-title">New Event Created</div>
+                    <div class="notification-desc">Corporate Event for Horizon scheduled for June 15</div>
+                    <div class="notification-time">2 hours ago</div>
+                </div>
+                <div class="notification-actions">
+                    <button class="btn-icon">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="notification-item unread">
+                <div class="notification-icon bg-danger">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="notification-details">
+                    <div class="notification-title">Low Stock Alert</div>
+                    <div class="notification-desc">Projector type elements below threshold (2 remaining)</div>
+                    <div class="notification-time">5 hours ago</div>
+                </div>
+                <div class="notification-actions">
+                    <button class="btn-icon">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="notification-item">
+                <div class="notification-icon bg-success">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="notification-details">
+                    <div class="notification-title">Event Completed</div>
+                    <div class="notification-desc">RWJ Charity Gala completed successfully</div>
+                    <div class="notification-time">Yesterday</div>
+                </div>
+                <div class="notification-actions">
+                    <button class="btn-icon">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="notifications-footer">
+            <a href="#" class="view-all">View All Notifications</a>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <div class="content-container">
+            {% if session.user_id %}
+            <nav aria-label="breadcrumb" class="breadcrumb-wrapper">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
+                    {% block breadcrumb %}{% endblock %}
+                </ol>
+            </nav>
+            {% endif %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+            {% block content %}{% endblock %}
+            
+            <footer class="footer">
+                <div class="text-center">
+                    <span class="text-muted">© 2025 QCS Event Management</span>
+                </div>
+            </footer>
+        </div>
+    </main>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JavaScript -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    
+    <!-- Theme & Navigation Controls -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Theme Toggle
+            const themeToggle = document.getElementById('themeToggle');
+            const body = document.body;
+            
+            // Check for saved theme preference
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                body.classList.add('dark-theme');
+                themeToggle.querySelector('i').classList.remove('fa-moon');
+                themeToggle.querySelector('i').classList.add('fa-sun');
+            }
+            
+            // Theme toggle functionality
+            themeToggle.addEventListener('click', function() {
+                body.classList.toggle('dark-theme');
+                const isDark = body.classList.contains('dark-theme');
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                
+                const icon = themeToggle.querySelector('i');
+                if (isDark) {
+                    icon.classList.remove('fa-moon');
+                    icon.classList.add('fa-sun');
+                } else {
+                    icon.classList.remove('fa-sun');
+                    icon.classList.add('fa-moon');
+                }
+            });
+            
+            // Sidebar Toggle
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.querySelector('.main-content');
+            
+            if (sidebarToggle && sidebar) {
+                sidebarToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('collapsed');
+                    mainContent.classList.toggle('expanded');
+                });
+                
+                // Close sidebar on mobile
+                const sidebarClose = document.getElementById('sidebarClose');
+                if (sidebarClose) {
+                    sidebarClose.addEventListener('click', function() {
+                        sidebar.classList.add('collapsed');
+                    });
+                }
+            }
+            
+            // Notifications Panel
+            const notificationsToggle = document.getElementById('notificationsToggle');
+            const notificationsPanel = document.getElementById('notificationsPanel');
+            const closeNotifications = document.getElementById('closeNotifications');
+            
+            if (notificationsToggle && notificationsPanel) {
+                notificationsToggle.addEventListener('click', function() {
+                    notificationsPanel.classList.toggle('show');
+                });
+                
+                if (closeNotifications) {
+                    closeNotifications.addEventListener('click', function() {
+                        notificationsPanel.classList.remove('show');
+                    });
+                }
+                
+                // Close when clicking outside
+                document.addEventListener('click', function(event) {
+                    if (!notificationsPanel.contains(event.target) && 
+                        event.target !== notificationsToggle &&
+                        !notificationsToggle.contains(event.target)) {
+                        notificationsPanel.classList.remove('show');
+                    }
+                });
+            }
+        });
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>
