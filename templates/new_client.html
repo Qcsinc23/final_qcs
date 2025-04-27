@@ -131,21 +131,3 @@
     </div>
 </div>
 {% endblock %}
-
-{% block scripts %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const form = document.querySelector('form');
-        const colorInput = document.getElementById('color');
-        const nameInput = document.getElementById('name');
-        
-        // Live preview of color selection
-        colorInput.addEventListener('input', function() {
-            nameInput.style.borderLeft = `5px solid ${this.value}`;
-        });
-        
-        // Initial color preview
-        nameInput.style.borderLeft = `5px solid ${colorInput.value}`;
-    });
-</script>
-{% endblock %}
